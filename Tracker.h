@@ -1,0 +1,26 @@
+#ifndef TRACKER_H
+#define TRACKER_H
+
+namespace Tracker
+{
+	enum TrackerState
+	{
+		START_TRACKING,
+		STOP_TRACKING,
+		START_MANUFACTURING,
+		MANUFACTURE,
+		STOP_MANUFACTURING,
+		START_DIAGNOSING,
+		STOP_DIAGNOSING
+	};
+
+	enum TackerMode
+	{
+		INVALID,
+		TRACKING_3D,
+		MANUFACTURING,
+		DIAGNOSING
+	};
+}
+
+#endif
