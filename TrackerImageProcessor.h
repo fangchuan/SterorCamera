@@ -21,8 +21,8 @@ public slots:
 	void startDiagnosing();
 	void stopDiagnosing();
 	void process();
-	void socketJam();
-	void socketIdle();
+    void busJam();
+    void busIdle();
 
 signals:
 	void processed();

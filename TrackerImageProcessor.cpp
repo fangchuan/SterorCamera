@@ -11,7 +11,7 @@
 
 #include <QDataStream>
 
-#include <Windows.h>
+//#include <Windows.h>
 
 using namespace FlyCapture2;
 
@@ -251,12 +251,12 @@ void TrackerImageProcessor::process()
 	}
 }
 
-void TrackerImageProcessor::socketJam()
+void TrackerImageProcessor::busJam()
 {
 	m_SocketOverload = true;
 }
 
-void TrackerImageProcessor::socketIdle()
+void TrackerImageProcessor::busIdle()
 {
 	m_SocketOverload = false;
 }

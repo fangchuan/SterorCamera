@@ -1,13 +1,15 @@
 #ifndef TRACKERSERVER_H
 #define TRACKERSERVER_H
 
-#include <QTcpServer>
+#include <QThread>
+#include <QTimer>
+#include <QSerialPort>
 
-class TrackerSocket;
+class SerialWorker;
 class TrackerImageCapture;
 class TrackerImageProcessor;
 
-class TrackerServer : public QTcpServer
+class TrackerServer: public QObject
 {
 	Q_OBJECT
 
@@ -22,23 +24,33 @@ signals:
 	void stopManufacturing();
 	void startDiagnosing();
 	void stopDiagnosing();
-	void socketJam();
-	void socketIdle();
+    void busJam();
+    void busIdle();
 	void captured();
 	void processed();
-	void sendMessage(const QByteArray& msg);
+    void startTimer(int time);
+    void stopTimer();
 
-protected:
-	virtual void incomingConnection(int socketDescriptor);
+private:
+    bool openSerialPort();
+    void closeSerialPort();
+    void readData();
 
 private slots:
-	void disconnectFromClient();
-	void captureError(const QByteArray& error);
+    void checkBusJam();
+    void sendMessage(const QByteArray& msg);
+    void handleError(const QByteArray& error);
+    void handleError(QSerialPort::SerialPortError &err);
+    void handleUploadFile(const QByteArray& data);
+    void saveFile();
 
 private:
 	TrackerImageCapture *m_Capture;
 	TrackerImageProcessor *m_Processor;
-	int m_ClientNumber;
+    SerialWorker *m_serial;
+    QThread *serialThread;
+    QThread *imgThread;
+
 };
 
 #endif // TRACKERSERVER_H
