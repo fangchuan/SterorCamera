@@ -22,7 +22,7 @@ signals:
     void busJam();
     void busIdle();
     void captured();
-    void processed();
+    void manufacting();
     void startTimer(int time);
     void stopTimer();
 
@@ -30,11 +30,10 @@ public slots:
     bool setup();
     void closeSerialPort();
     void readData();
-
+    void handleError(const QByteArray& error);
+    void sendMessage(const QByteArray& msg);
 private slots:
     void checkBusJam();
-    void sendMessage(const QByteArray& msg);
-    void handleError(const QByteArray& error);
     void handleError(QSerialPort::SerialPortError &err);
     void handleUploadFile(const QByteArray& data);
     void saveFile();

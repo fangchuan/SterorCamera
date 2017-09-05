@@ -1,6 +1,7 @@
 #include "serialworker.h"
 #include "TrackerMessageTranslator.h"
 #include "Tracker.h"
+#include <QFile>
 
 
 SerialWorker::SerialWorker(QObject *parent):
@@ -12,11 +13,16 @@ SerialWorker::SerialWorker(QObject *parent):
 {
     connect(this, &SerialWorker::startTimer, timer, &QTimer::start);
     connect(this, &SerialWorker::stopTimer, timer, &QTimer::stop);
-    connect(timer, &QTimer::timeout, this, &TrackerServer::checkBusJam);
+    connect(m_timer, &QTimer::timeout, this, &SerialWorker::checkBusJam);
 
     connect(this, &QSerialPort::readyRead, this, &SerialWorker::readData);
-    connect(m_serial, static_cast<void (QSerialPort::*)(QSerialPort::SerialPortError)>(&QSerialPort::error),
+    connect(this, static_cast<void (QSerialPort::*)(QSerialPort::SerialPortError)>(&QSerialPort::error),
             this, &SerialWorker::handleError);
+}
+
+SerialWorker::~SerialWorker()
+{
+    closeSerialPort();
 }
 
 void SerialWorker::readData()
@@ -59,7 +65,7 @@ void SerialWorker::readData()
             break;
         case Tracker::MANUFACTURE:
             {
-                emit processed();
+                emit manufacting();
         }
             break;
         case Tracker::STOP_MANUFACTURING:
@@ -164,7 +170,7 @@ void SerialWorker::saveFile()
 
 void SerialWorker::checkBusJam()
 {
-    if (m_serial->bytesToWrite() > 0)
+    if (this->bytesToWrite() > 0)
     {
         emit busJam();
     }else{
