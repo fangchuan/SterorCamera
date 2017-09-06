@@ -15,10 +15,11 @@ INCLUDEPATH += /usr/local/include \
                 /usr/local/include/opencv2  \
                 /usr/include/flycapture
 
-LIBS += /usr/local/lib/libopencv_highgui.so \
+LIBS += /usr/lib/libflycapture.so
+        /usr/local/lib/libopencv_highgui.so \
         /usr/local/lib/libopencv_imgproc.so \
         /usr/local/lib/libopencv_core.so    \
-        /usr/lib/libflycapture.so
+#
 
 
 SOURCES += main.cpp \
@@ -40,3 +41,6 @@ HEADERS += \
     TrackerMessageTranslator.h \
     TrackerServer.h \
     serialworker.h
+
+DISTFILES += \
+    README.md

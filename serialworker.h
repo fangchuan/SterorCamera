@@ -9,7 +9,7 @@ class SerialWorker : public QSerialPort
 {
     Q_OBJECT
 public:
-    SerialWorker(QObject* parent);
+    SerialWorker(QObject* parent = NULL);
     ~SerialWorker();
 
 signals:
@@ -25,7 +25,7 @@ signals:
     void manufacting();
     void startTimer(int time);
     void stopTimer();
-
+    void closed();
 public slots:
     bool setup();
     void closeSerialPort();
@@ -34,7 +34,7 @@ public slots:
     void sendMessage(const QByteArray& msg);
 private slots:
     void checkBusJam();
-    void handleError(QSerialPort::SerialPortError &err);
+    void handleFatalError(QSerialPort::SerialPortError error);
     void handleUploadFile(const QByteArray& data);
     void saveFile();
 private:

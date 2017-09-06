@@ -2,7 +2,8 @@
 #include "TrackerMessageTranslator.h"
 #include "Tracker.h"
 #include <QFile>
-
+#include <QDataStream>
+#include <QDebug>
 
 SerialWorker::SerialWorker(QObject *parent):
     QSerialPort(parent),
@@ -11,13 +12,13 @@ SerialWorker::SerialWorker(QObject *parent):
     m_IsAppendingFile(false)
 
 {
-    connect(this, &SerialWorker::startTimer, timer, &QTimer::start);
-    connect(this, &SerialWorker::stopTimer, timer, &QTimer::stop);
-    connect(m_timer, &QTimer::timeout, this, &SerialWorker::checkBusJam);
+    connect(this, SIGNAL(startTimer(int)), m_timer, SLOT(start(int)));
+    connect(this, SIGNAL(stopTimer()), m_timer, SLOT(stop()));
+    connect(m_timer, SIGNAL(timeout()), this, SLOT(checkBusJam()));
 
-    connect(this, &QSerialPort::readyRead, this, &SerialWorker::readData);
-    connect(this, static_cast<void (QSerialPort::*)(QSerialPort::SerialPortError)>(&QSerialPort::error),
-            this, &SerialWorker::handleError);
+    connect(this, SIGNAL(readyRead()), this, SLOT(readData()));
+    connect(this, SIGNAL(error(QSerialPort::SerialPortError)),
+            this, SLOT(handleFatalError(QSerialPort::SerialPortError)));
 }
 
 SerialWorker::~SerialWorker()
@@ -84,6 +85,7 @@ void SerialWorker::readData()
             }
             break;
         }
+        qDebug()<< request;
     }
 
 }
@@ -97,7 +99,11 @@ bool SerialWorker::setup()
     this->setStopBits(QSerialPort::OneStop);
     this->setFlowControl(QSerialPort::NoFlowControl);
 
-    return (this->open(QIODevice::ReadWrite));
+    if(this->open(QIODevice::ReadWrite)){
+        qDebug()<<"open successfully";
+        return true;
+    }else
+        return false;
 
 }
 
@@ -119,11 +125,11 @@ void SerialWorker::handleError(const QByteArray& error)
         sendMessage(errorMsg);
 }
 //
-void SerialWorker::handleError(QSerialPort::SerialPortError &err)
+void SerialWorker::handleFatalError(QSerialPort::SerialPortError error)
 {
-    Q_UNUSED(err);
+    Q_UNUSED(error);
     closeSerialPort();
-
+    emit closed();
 }
 
 void SerialWorker::handleUploadFile(const QByteArray& data)

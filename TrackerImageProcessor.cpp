@@ -164,6 +164,7 @@ void getMarkerCenters3D(MarkerCenters& leftCenters, MarkerCenters& rightCenters)
 
 void TrackerImageProcessor::process()
 {
+
 	Image *p = m_Imagepool->getImagePtr();
 
 	QByteArray r;
@@ -249,6 +250,7 @@ void TrackerImageProcessor::process()
 	{
 		emit result(r);
 	}
+
 }
 
 void TrackerImageProcessor::busJam()

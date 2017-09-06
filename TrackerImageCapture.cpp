@@ -9,7 +9,7 @@
 #include <QDataStream>
 #include <QDir>
 
-#include <Windows.h>
+//#include <Windows.h>
 
 TrackerImageCapture::TrackerImageCapture()
 	: m_IsCapturing(false),

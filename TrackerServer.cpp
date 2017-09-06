@@ -14,52 +14,62 @@ TrackerServer::TrackerServer(QObject *parent)
 
 {
     m_serial = new SerialWorker();
-    serialThread = new Thread(this);
+    serialThread = new QThread(this);
     m_serial->moveToThread(serialThread);
 
     m_Capture = new TrackerImageCapture();
     m_Processor = new TrackerImageProcessor();
-    imgThread = new Thread(this);
+    imgThread = new QThread(this);
     m_Capture->moveToThread(imgThread);
     m_Processor->moveToThread(imgThread);
 
+    connect(m_serial, &SerialWorker::closed, serialThread, &QThread::quit);
     connect(serialThread, &QThread::started, m_serial, &SerialWorker::setup);
     connect(serialThread, &QThread::finished,  m_serial, &SerialWorker::deleteLater);
-    connect(serialThread, &QThread::finished, serialThread, &SerialWorker::deleteLater);
+    connect(serialThread, &QThread::finished, serialThread, &QThread::deleteLater);
 
+    connect(serialThread, &QThread::finished, imgThread, &QThread::quit);
     connect(imgThread, &QThread::finished,  m_Capture, &SerialWorker::deleteLater);
     connect(imgThread, &QThread::finished,  m_Processor, &SerialWorker::deleteLater);
-    connect(imgThread, &QThread::finished, imgThread, &SerialWorker::deleteLater);
+    connect(imgThread, &QThread::finished, imgThread, &QThread::deleteLater);
 
-    connect(m_Capture, SIGNAL(captured()), m_Processor, SLOT(process());
+    connect(m_Capture, SIGNAL(captured()), m_Processor, SLOT(process()));
     connect(m_Processor, SIGNAL(processed()), m_Capture, SLOT(capture()));
-    connect(m_Capture, SIGNAL(errorOccured(const QByteArray&)), m_serial, SLOT(handleError(const QByteArray&)));
-    connect(m_serial, SIGNAL(startTracking()), m_Capture, SLOT(startCapture()));
-    connect(m_serial, SIGNAL(stopTracking()), m_Capture, SLOT(stopCapture()));
-    connect(m_serial, SIGNAL(startManufacturing()), m_Capture, SLOT(startCapture()));
+    connect(m_Capture, SIGNAL(errorOccured(const QByteArray&)), m_serial, SLOT(handleError(const QByteArray&)), Qt::DirectConnection);
+    connect(m_serial, SIGNAL(startTracking()), m_Capture, SLOT(startCapture()), Qt::DirectConnection);
+    connect(m_serial, SIGNAL(stopTracking()), m_Capture, SLOT(stopCapture()), Qt::DirectConnection);
+    /*connect(m_serial, SIGNAL(startManufacturing()), m_Capture, SLOT(startCapture()));
     connect(m_serial, SIGNAL(stopManufacturing()), m_Capture, SLOT(stopCapture()));
     connect(m_serial, SIGNAL(startDiagnosing()), m_Capture, SLOT(startCapture()));
-    connect(m_serial, SIGNAL(stopDiagnosing()), m_Capture, SLOT(stopCapture()));
+    connect(m_serial, SIGNAL(stopDiagnosing()), m_Capture, SLOT(stopCapture()));*/
 
-    connect(m_serial, SIGNAL(startTracking()), m_Processor, SLOT(startTracking()));
-    connect(m_serial, SIGNAL(stopTracking()), m_Processor, SLOT(stopTracking()));
-    connect(m_serial, SIGNAL(startManufacturing()), m_Processor, SLOT(startManufacturing()));
+    connect(m_serial, SIGNAL(startTracking()), m_Processor, SLOT(startTracking()), Qt::DirectConnection);
+    connect(m_serial, SIGNAL(stopTracking()), m_Processor, SLOT(stopTracking()), Qt::DirectConnection);
+    /*connect(m_serial, SIGNAL(startManufacturing()), m_Processor, SLOT(startManufacturing()));
     connect(m_serial, SIGNAL(stopManufacturing()), m_Processor, SLOT(stopManufacturing()));
     connect(m_serial, SIGNAL(startDiagnosing()), m_Processor, SLOT(startDiagnosing()));
-    connect(m_serial, SIGNAL(stopDiagnosing()), m_Processor, SLOT(stopDiagnosing()));
-    connect(m_serial, SIGNAL(busJam()), m_Processor, SLOT(busJam()));
-    connect(m_serial, SIGNAL(busIdle()), m_Processor, SLOT(busIdle()));
-    connect(m_serial, SIGNAL(captured()), m_Processor, SLOT(process()));
-    connect(m_Processor, SIGNAL(result(const QByteArray&)), m_serial, SLOT(sendMessage(const QByteArray&)));
+    connect(m_serial, SIGNAL(stopDiagnosing()), m_Processor, SLOT(stopDiagnosing()));*/
+    connect(m_serial, SIGNAL(busJam()), m_Processor, SLOT(busJam()), Qt::DirectConnection);
+    connect(m_serial, SIGNAL(busIdle()), m_Processor, SLOT(busIdle()), Qt::DirectConnection);
+    connect(m_Processor, SIGNAL(result(const QByteArray&)), m_serial, SLOT(sendMessage(const QByteArray&)), Qt::DirectConnection);
 
     serialThread->start(QThread::TimeCriticalPriority);
     imgThread->start(QThread::HighPriority);
+
 
 }
 
 TrackerServer::~TrackerServer()
 {
+    if(serialThread->isRunning()){
+        serialThread->quit();
+        serialThread->wait();
+    }
 
+    if(imgThread->isRunning()){
+        imgThread->quit();
+        imgThread->wait();
+    }
 }
 
 
