@@ -2,15 +2,12 @@
 #define NDITRACKINGDEVICE_H_HEADER_INCLUDED_C1C2FCD2
 
 #include "trackingdevice.h"
-
-#include <itkMultiThreader.h>
-#include "itkFastMutexLock.h"
 #include <vector>
 
 #include "trackingtypes.h"
 #include "vpsndiprotocol.h"
 #include "vpsndipassivetool.h"
-#include "vpsserialcommunication.h"
+#include "serialworker.h"
 
 class NDIProtocol;
 
@@ -26,25 +23,16 @@ class NDITrackingDevice : public TrackingDevice
 	friend class NDIProtocol;
 
 public:
-	typedef std::vector<NDIPassiveTool::Pointer> Tool6DContainerType;  ///< List of 6D tools of the correct type for this tracking device
-
-	typedef TrackingDeviceType NDITrackingDeviceType;  ///< This enumeration includes the two types of NDI tracking devices (Polaris, Aurora).
-	typedef SerialCommunication::PortNumber PortNumber; ///< Port number of the serial connection
-	typedef SerialCommunication::BaudRate BaudRate;     ///< Baud rate of the serial connection
-	typedef SerialCommunication::DataBits DataBits;     ///< Number of data bits used in the serial connection
-	typedef SerialCommunication::Parity Parity;         ///< Parity mode used in the serial connection
-	typedef SerialCommunication::StopBits StopBits;     ///< Number of stop bits used in the serial connection
-	typedef SerialCommunication::HardwareHandshake HardwareHandshake; ///< Hardware handshake mode of the serial connection
+    ///< List of 6D tools of the correct type for this tracking device
+    typedef std::vector<NDIPassiveTool::Pointer> Tool6DContainerType;
+    ///< This enumeration includes the two types of NDI tracking devices (Polaris, Aurora).
+    typedef TrackingDeviceType NDITrackingDeviceType;
+    typedef QSerialPort::BaudRate BaudRate;     ///< Baud rate of the serial connection
+    typedef QSerialPort::DataBits DataBits;     ///< Number of data bits used in the serial connection
+    typedef QSerialPort::Parity Parity;         ///< Parity mode used in the serial connection
+    typedef QSerialPort::StopBits StopBits;     ///< Number of stop bits used in the serial connection
+    typedef QSerialPort::FlowControl  FlowControl; ///< Hardware handshake mode of the serial connection
 	typedef NDIPassiveTool::TrackingPriority TrackingPriority; ///< Tracking priority used for tracking a tool
-
-	vpsClassMacro(NDITrackingDevice, TrackingDevice);
-	itkNewMacro(Self);
-
-	/**
-	* \brief Set the type of the NDI Tracking Device because it can not jet handle this itself
-	*/
-	//itkSetMacro(Type, TrackingDeviceType);
-
 
 	/**
 	* \brief initialize the connection to the tracking device
@@ -56,7 +44,8 @@ public:
 	* - initializing all manually added passive tools (user supplied srom file)
 	* - initializing active tools that are connected to the tracking device
 	* @throw IGTHardwareException Throws an exception if there are errors while connecting to the device.
-	* @throw IGTException Throws a normal IGT exception if an error occures which is not related to the hardware.
+    * @throw IGTException Throws a normal IGT exception if an error occures which is not related to the
+    *                       hardware.
 	*/
 	virtual bool OpenConnection();
 
@@ -76,10 +65,12 @@ public:
 	virtual void SetRotationMode(RotationMode r);
 
 	/**
-	* \brief TestConnection() tries to connect to a NDI tracking device on the current port/device and returns which device it has found
+    * \brief TestConnection() tries to connect to a NDI tracking device on the current port/device
+    *           and returns which device it has found
 	*
 	* TestConnection() tries to connect to a NDI tracking device on the current port/device.
-	* \return It returns the type of the device that answers at the port/device. Throws an exception if no device is available on that port.
+    * \return It returns the type of the device that answers at the port/device.
+    *           Throws an exception if no device is available on that port.
 	* @throw IGTHardwareException Throws an exception if there are errors while connecting to the device.
 	*/
 	virtual TrackingDeviceType TestConnection();
@@ -87,11 +78,12 @@ public:
 	/**
 	* \brief retrieves all wired tools from the tracking device
 	*
-	* This method queries the tracking device for all wired tools, initializes them and creates TrackingTool representation objects
-	* for them
+    * This method queries the tracking device for all wired tools, initializes them and creates
+    * TrackingTool representation objects for them
 	* \return True if the method was executed successful.
 	* @throw IGTHardwareException Throws an exception if there are errors while connecting to the device.
-	* @throw IGTException Throws a normal IGT exception if an error occures which is not related to the hardware.
+    * @throw IGTException Throws a normal IGT exception if an error occures which is not related to the
+    *                        hardware.
 	*/
 	bool DiscoverWiredTools();
 
@@ -105,16 +97,13 @@ public:
 	*/
 	virtual bool StartTracking();
 
-	/**
-	* \brief return the tool with index toolNumber
-	*/
+    ///< return the tool with index toolNumber
 	virtual TrackingTool* GetTool(unsigned int toolNumber) const;
 
 	virtual TrackingTool* GetToolByName(std::string name) const;
-	/**
-	* \brief return current number of tools
-	*/
-	virtual unsigned int GetToolCount() const;
+
+    ///< return current number of tools
+    virtual unsigned int GetToolCount() const;
 
 	/**
 	* \brief Create a passive 6D tool with toolName and fileName and add it to the list of tools
@@ -130,63 +119,59 @@ public:
 	*/
 	TrackingTool* AddTool(const char* toolName, const char* fileName, TrackingPriority p = NDIPassiveTool::Dynamic);
 
-	/**
-	* \brief Remove a passive 6D tool from the list of tracked tools.
-	*
-	* \warning removing tools is not possible in tracking mode, only in setup and ready modes.
-	*/
+    ///< Remove a passive 6D tool from the list of tracked tools.
+    ///<warning removing tools is not possible in tracking mode, only in setup and ready modes.
 	virtual bool RemoveTool(TrackingTool* tool);
 
-	/**
-	* \brief reloads the srom file and reinitializes the tool
-	*/
+    ///< reloads the srom file and reinitializes the tool
 	virtual bool UpdateTool(TrackingTool* tool);
 
-	virtual void SetPortNumber(const PortNumber _arg); ///< set port number for serial communication
-	itkGetConstMacro(PortNumber, PortNumber);          ///< returns the port number for serial communication
-	virtual void SetDeviceName(std::string _arg);      ///< set device name (e.g. COM1, /dev/ttyUSB0). If this is set, PortNumber will be ignored
-	itkGetStringMacro(DeviceName);                     ///< returns the device name for serial communication
-	virtual void SetBaudRate(const BaudRate _arg);     ///< set baud rate for serial communication
-	itkGetConstMacro(BaudRate, BaudRate);              ///< returns the baud rate for serial communication
-	virtual void SetDataBits(const DataBits _arg);     ///< set number of data bits
-	itkGetConstMacro(DataBits, DataBits);              ///< returns the data bits for serial communication
-	virtual void SetParity(const Parity _arg);         ///< set parity mode
-	itkGetConstMacro(Parity, Parity);                  ///< returns the parity mode
-	virtual void SetStopBits(const StopBits _arg);     ///< set number of stop bits
-	itkGetConstMacro(StopBits, StopBits);              ///< returns the number of stop bits
-	virtual void SetHardwareHandshake(const HardwareHandshake _arg);  ///< set use hardware handshake for serial communication
-	itkGetConstMacro(HardwareHandshake, HardwareHandshake);              ///< returns the hardware handshake setting
-	virtual void SetIlluminationActivationRate(const IlluminationActivationRate _arg); ///< set activation rate of IR illumator for polaris
-	itkGetConstMacro(IlluminationActivationRate, IlluminationActivationRate);          ///< returns the activation rate of IR illumator for polaris
-	virtual void SetDataTransferMode(const DataTransferMode _arg);    ///< set data transfer mode to text (TX) or binary (BX). \warning: only TX is supportet at the moment
-	itkGetConstMacro(DataTransferMode, DataTransferMode);              ///< returns the data transfer mode
-	virtual bool Beep(unsigned char count);   ///< Beep the tracking device 1 to 9 times
+    ///< set device name (e.g. COM1, /dev/ttyUSB0). If this is set, PortNumber will be ignored
+    virtual void SetDeviceName(std::string _arg);
 
-	NDIErrorCode GetErrorCode(const std::string* input);  ///< returns the error code for a string that contains an error code in hexadecimal format
+    ///< set baud rate for serial communication
+    virtual void SetBaudRate(const BaudRate _arg);
 
-	virtual bool SetOperationMode(OperationMode mode);  ///< set operation mode to 6D tool tracking, 3D marker tracking or 6D&3D hybrid tracking (see OperationMode)
-	virtual OperationMode GetOperationMode();           ///< get current operation mode
+    ///< set number of data bits
+    virtual void SetDataBits(const DataBits _arg);
 
-	/**
-	* \brief Get 3D marker positions (operation mode must be set to MarkerTracking3D or HybridTracking)
-	*/
+    ///< set parity mode
+    virtual void SetParity(const Parity _arg);
+
+    ///< set number of stop bits
+    virtual void SetStopBits(const StopBits _arg);
+
+    ///< set use hardware handshake for serial communication
+    virtual void SetHardwareHandshake(const FlowControl _arg);
+
+    ///< set activation rate of IR illumator for polaris
+    virtual void SetIlluminationActivationRate(const IlluminationActivationRate _arg);
+
+    ///< set data transfer mode to text (TX) or binary (BX). \warning: only TX is supportet at the moment
+    virtual void SetDataTransferMode(const DataTransferMode _arg);
+
+    ///< Beep the tracking device 1 to 9 times
+    virtual bool Beep(unsigned char count);
+
+    ///< returns the error code for a string that contains an error code in hexadecimal format
+    NDIErrorCode GetErrorCode(const std::string* input);
+
+    ///< set operation mode to 6D tool tracking, 3D marker tracking or 6D&3D hybrid tracking
+    virtual bool SetOperationMode(OperationMode mode);
+
+    ///< get current operation mode
+    virtual OperationMode GetOperationMode();
+
+    /// Get 3D marker positions (operation mode must be set to MarkerTracking3D or HybridTracking)
 	virtual bool GetMarkerPositions(MarkerPointContainerType* markerpositions);
 
-	/**
-	* \brief Get major revision number from tracking device
-	* should not be called directly after starting to track
-	**/
+    ///Get major revision number from tracking device
+    ///should not be called directly after starting to track
 	virtual int GetMajorFirmwareRevisionNumber();
 
-	/**
-	* \brief Get revision number from tracking device as string
-	* should not be called directly after starting to track
-	**/
+    ///Get revision number from tracking device as string
+    ///should not be called directly after starting to track
 	virtual const char* GetFirmwareRevisionNumber();
-
-
-
-
 
 protected:
 
@@ -230,9 +215,9 @@ protected:
 	NDIErrorCode FreePortHandles();
 
 	NDIErrorCode Send(const std::string* message, bool addCRC = true);      ///< Send message to tracking device
-	NDIErrorCode Receive(std::string* answer, unsigned int numberOfBytes);  ///< receive numberOfBytes bytes from tracking device
+    NDIErrorCode Receive(std::string *answer, unsigned int numberOfBytes);  ///< receive numberOfBytes bytes from tracking device
 	NDIErrorCode ReceiveByte(char* answer);   ///< lightweight receive function, that reads just one byte
-	NDIErrorCode ReceiveLine(std::string* answer); ///< receive characters until the first LF (The LF is included in the answer string)
+    NDIErrorCode ReceiveLine(std::string *answer); ///< receive characters until the first LF (The LF is included in the answer string)
 	void ClearSendBuffer();                   ///< empty send buffer of serial communication interface
 	void ClearReceiveBuffer();                ///< empty receive buffer of serial communication interface
 	const std::string CalcCRC(const std::string* input);  ///< returns the CRC16 for input as a std::string
@@ -277,26 +262,25 @@ protected:
 	virtual ~NDITrackingDevice(); ///< Destructor
 
 	std::string m_DeviceName;///< Device Name
-	PortNumber m_PortNumber; ///< COM Port Number
 	BaudRate m_BaudRate;     ///< COM Port Baud Rate
 	DataBits m_DataBits;     ///< Number of Data Bits per token
 	Parity m_Parity;         ///< Parity mode for communication
 	StopBits m_StopBits;     ///< number of stop bits per token
-	HardwareHandshake m_HardwareHandshake; ///< use hardware handshake for serial port connection
+    FlowControl m_HardwareHandshake; ///< use hardware handshake for serial port connection
 	///< which tracking volume is currently used (if device supports multiple volumes) (\warning This parameter is not used yet)
 	IlluminationActivationRate m_IlluminationActivationRate; ///< update rate of IR illuminator for Polaris
 	DataTransferMode m_DataTransferMode;  ///< use TX (text) or BX (binary) (\warning currently, only TX mode is supported)
 	Tool6DContainerType m_6DTools;        ///< list of 6D tools
 
-	itk::FastMutexLock::Pointer m_ToolsMutex; ///< mutex for coordinated access of tool container
-	SerialCommunication::Pointer m_SerialCommunication;    ///< serial communication interface
-	itk::FastMutexLock::Pointer m_SerialCommunicationMutex; ///< mutex for coordinated access of serial communication interface
+    QMutex *m_ToolsMutex; ///< mutex for coordinated access of tool container
+    SerialWorker *m_SerialCommunication;    ///< serial communication interface
+    QMutex *m_SerialCommunicationMutex; ///< mutex for coordinated access of serial communication interface
 	NDIProtocol::Pointer m_DeviceProtocol;    ///< create and parse NDI protocol strings
 
-	itk::MultiThreader::Pointer m_MultiThreader;      ///< creates tracking thread that continuously polls serial interface for new tracking data
+    QMutex *m_MultiThreader;      ///< creates tracking thread that continuously polls serial interface for new tracking data
 	int m_ThreadID;                 ///< ID of tracking thread
 	OperationMode m_OperationMode;  ///< tracking mode (6D tool tracking, 3D marker tracking,...)
-	itk::FastMutexLock::Pointer m_MarkerPointsMutex;  ///< mutex for marker point data container
+    QMutex *m_MarkerPointsMutex;  ///< mutex for marker point data container
 	MarkerPointContainerType m_MarkerPoints;          ///< container for markers (3D point tracking mode)
 };
 

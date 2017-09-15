@@ -15,10 +15,10 @@ INCLUDEPATH += /usr/local/include \
                 /usr/local/include/opencv2  \
                 /usr/include/flycapture
 
-LIBS += /usr/lib/libflycapture.so
+LIBS += /usr/lib/libflycapture.so \
         /usr/local/lib/libopencv_highgui.so \
         /usr/local/lib/libopencv_imgproc.so \
-        /usr/local/lib/libopencv_core.so    \
+        /usr/local/lib/libopencv_core.so
 #
 
 
@@ -29,7 +29,17 @@ SOURCES += main.cpp \
     TrackerLightsController.cpp \
     TrackerMessageTranslator.cpp \
     TrackerServer.cpp \
-    serialworker.cpp
+    serialworker.cpp \
+    trackingdevice.cpp \
+    trackingtool.cpp \
+    vpsvector.cpp \
+    vpsndiprotocol.cpp \
+    vpsserialcommunication.cpp \
+    vpsnditrackingdevice.cpp \
+    vpsinternaltrackingtool.cpp \
+    vpsigttimestamp.cpp \
+    vpsrealtimeclock.cpp \
+    serialinterpreter.cpp
 
 HEADERS += \
     Tracker.h \
@@ -40,7 +50,19 @@ HEADERS += \
     TrackerLightsController.h \
     TrackerMessageTranslator.h \
     TrackerServer.h \
-    serialworker.h
+    serialworker.h \
+    trackingdevice.h \
+    trackingtool.h \
+    vpscommon.h \
+    vpsvector.h \
+    vpsndiprotocol.h \
+    vpsserialcommunication.h \
+    vpsnditrackingdevice.h \
+    vpsinternaltrackingtool.h \
+    vpsigttimestamp.h \
+    vpsrealtimeclock.h \
+    serialinterpreter.h \
+    trackingtypes.h
 
 DISTFILES += \
     README.md

@@ -1,11 +1,9 @@
 #ifndef NDIPROTOCOL_H_HEADER_INCLUDED_
 #define NDIPROTOCOL_H_HEADER_INCLUDED_
 
-#include <itkObject.h>
-#include <itkObjectFactory.h>
-
-#include "vpsserialcommunication.h"
+#include "serialworker.h"
 #include "vpsndipassivetool.h"
+
 
 class NDITrackingDevice;
 
@@ -15,28 +13,32 @@ class NDITrackingDevice;
 *
 * \ingroup IGT
 */
-class NDIProtocol : public itk::Object
+class NDIProtocol
 {
 public:
-	vpsClassMacro(NDIProtocol, itk::Object);
-	itkNewMacro(Self);
 
-	itkSetObjectMacro(TrackingDevice, NDITrackingDevice);
-
-	typedef SerialCommunication::PortNumber PortNumber; ///< Port number of the serial connection
-	typedef SerialCommunication::BaudRate BaudRate;     ///< Baud rate of the serial connection
-	typedef SerialCommunication::DataBits DataBits;     ///< Number of data bits used in the serial connection
-	typedef SerialCommunication::Parity Parity;         ///< Parity mode used in the serial connection
-	typedef SerialCommunication::StopBits StopBits;     ///< Number of stop bits used in the serial connection
-	typedef SerialCommunication::HardwareHandshake HardwareHandshake; ///< Hardware handshake mode of the serial connection
+    typedef SerialWorker::BaudRate BaudRate;     ///< Baud rate of the serial connection
+    typedef SerialWorker::DataBits DataBits;     ///< Number of data bits used in the serial connection
+    typedef SerialWorker::Parity Parity;         ///< Parity mode used in the serial connection
+    typedef SerialWorker::StopBits StopBits;     ///< Number of stop bits used in the serial connection
+    typedef SerialWorker::FlowControl FlowControl; ///< Hardware handshake mode of the serial connection
 	typedef NDIPassiveTool::TrackingPriority TrackingPriority; ///< Tracking priority used for tracking a tool
-	/**
-	* \brief Gives information about the tool which is assosiated with the port handle. Writes portInfo to the string.
+
+    NDIProtocol();
+    virtual ~NDIProtocol();
+
+    void SetTrackingDevice(NDITrackingDevice *device);
+    void SetUseCRC(bool sw);
+    /**
+    * \brief Gives information about the tool which is assosiated with the port handle.
+    * Writes portInfo to the string.
 	*/
 	NDIErrorCode APIREV(std::string* revision);
 	NDIErrorCode PHINF(std::string portHandle, std::string* portInfo);
 	NDIErrorCode PSOUT(std::string portHandle, std::string state); ///< Set GPIO Output (Aurora)
-	NDIErrorCode COMM(SerialCommunication::BaudRate baudRate, SerialCommunication::DataBits dataBits, SerialCommunication::Parity parity, SerialCommunication::StopBits stopBits, SerialCommunication::HardwareHandshake hardwareHandshake); ///< Change Serial Communication Parameters
+    ///< Change Serial Communication Parameters
+    NDIErrorCode COMM(BaudRate baudRate, DataBits dataBits, Parity parity,
+                      StopBits stopBits, FlowControl hardwareHandshake);
 	NDIErrorCode INIT();    ///< Initialize the Measurement System
 	NDIErrorCode DSTART();  ///< Start the Diagnostic Mode
 	NDIErrorCode DSTOP();   ///< Stop the Diagnostic Mode
@@ -61,12 +63,8 @@ public:
 	NDIErrorCode VSEL(TrackingDeviceData deviceData);                ///< Sets the tracking volume to the given type. Check available tracking volumes with SFLIST first
 	NDIErrorCode TX1000(MarkerPointContainerType* markerPositions);    ///< Report transformations in text mode.
 	unsigned int ByteToNbBitsOn(char& c) const; ///<
-	itkGetConstMacro(UseCRC, bool); ///< Get whether to append a CRC16 checksum to each message
-	itkSetMacro(UseCRC, bool);      ///< Set whether to append a CRC16 checksum to each message
-	itkBooleanMacro(UseCRC);        ///< Set whether to append a CRC16 checksum to each message
+
 protected:
-	NDIProtocol();
-	virtual ~NDIProtocol();
 
 	/**Documentation
 	* Reads the reply from the tracking device and checks if it is either "OKAY" or "ERROR##".

@@ -6,13 +6,7 @@
 #include <vpsvector.h>
 #include <itkFastMutexLock.h>
 
-/**Documentation
-* \brief Interface for all Tracking Tools
-*
-* Abstract class that defines the methods that are common for all tracking tools.
-*
-* \ingroup IGT
-*/
+
 class TrackingTool : public itk::Object
 {
 public:

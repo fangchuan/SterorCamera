@@ -3,13 +3,13 @@
 #include <string>
 #include <algorithm>
 #include <sstream>
-#include <itksys/SystemTools.hxx>
 #include <stdio.h>
 #include <iostream>
 
 
-NDIProtocol::NDIProtocol()
-: itk::Object(), m_TrackingDevice(NULL), m_UseCRC(true)
+NDIProtocol::NDIProtocol():
+    m_TrackingDevice(NULL),
+    m_UseCRC(true)
 {
 }
 
@@ -18,72 +18,83 @@ NDIProtocol::~NDIProtocol()
 {
 }
 
+void NDIProtocol::SetTrackingDevice(NDITrackingDevice *device)
+{
+    m_TrackingDevice = device;
+}
 
-NDIErrorCode NDIProtocol::COMM(SerialCommunication::BaudRate baudRate , SerialCommunication::DataBits dataBits, SerialCommunication::Parity parity, SerialCommunication::StopBits stopBits, SerialCommunication::HardwareHandshake hardwareHandshake)
+void NDIProtocol::SetUseCRC(bool sw)
+{
+    m_UseCRC = sw;
+}
+
+NDIErrorCode NDIProtocol::COMM(BaudRate baudRate , DataBits dataBits,
+                               Parity parity, StopBits stopBits, FlowControl hardwareHandshake)
 {
 	/* Build parameter string */
 	std::string param;
 	switch (baudRate)
 	{
-	case SerialCommunication::BaudRate14400:
+    case BaudRate::Baud4800 :
 		param += "1";
 		break;
-	case SerialCommunication::BaudRate19200:
+    case BaudRate::Baud19200:
 		param += "2";
 		break;
-	case SerialCommunication::BaudRate38400:
+    case BaudRate::Baud38400:
 		param += "3";
 		break;
-	case SerialCommunication::BaudRate57600:
+    case BaudRate::Baud57600:
 		param += "4";
 		break;
-	case SerialCommunication::BaudRate115200:
+    case BaudRate::Baud115200:
 		param += "5";
 		break;
-	case SerialCommunication::BaudRate9600:
+    case BaudRate::Baud9600:
 	default:            // assume 9600 Baud as default
 		param += "0";
 		break;
 	}
 	switch (dataBits)
 	{
-	case SerialCommunication::DataBits7:
+    case DataBits::Data7:
 		param += "1";
 		break;
-	case SerialCommunication::DataBits8:
+    case DataBits::Data8:
 	default:            // set 8 data bits as default
 		param += "0";
 		break;
 	}
 	switch (parity)
 	{
-	case SerialCommunication::Odd:
+    case Parity::OddParity:
 		param += "1";
 		break;
-	case SerialCommunication::Even:
+    case Parity::EvenParity:
 		param += "2";
 		break;
-	case SerialCommunication::None:
+    case Parity::NoParity:
 	default:            // set no parity as default
 		param += "0";
 		break;
 	}
 	switch (stopBits)
 	{
-	case SerialCommunication::StopBits2:
+    case StopBits::TwoStop:
 		param += "1";
 		break;
-	case SerialCommunication::StopBits1:
+    case StopBits::OneStop:
 	default:            // set 1 stop bit as default
 		param += "0";
 		break;
 	}
 	switch (hardwareHandshake)
 	{
-	case SerialCommunication::HardwareHandshakeOn:
+    case FlowControl::HardwareControl:
 		param += "1";
 		break;
-	case SerialCommunication::HardwareHandshakeOff:
+    case FlowControl::SoftwareControl:
+    case FlowControl::NoFlowControl:
 	default:            // set no hardware handshake as default
 		param += "0";
 		break;
@@ -1397,8 +1408,8 @@ NDIErrorCode NDIProtocol::POS3D(MarkerPointContainerType* markerPositions)
 
 NDIErrorCode NDIProtocol::GenericCommand(const std::string command, const std::string* parameter)
 {
-	NDIErrorCode returnValue = NDIUNKNOWNERROR; // return code for this function. Will be set according to reply from trackingsystem
-
+    // return code for this function. Will be set according to reply from trackingsystem
+    NDIErrorCode returnValue = NDIUNKNOWNERROR;
 	if (m_TrackingDevice == NULL)
 		return TRACKINGDEVICENOTSET;
 
@@ -1415,10 +1426,10 @@ NDIErrorCode NDIProtocol::GenericCommand(const std::string command, const std::s
 	else
 		fullcommand = command + " " + p;          // command string format 2: without crc
 
-
+    // after sending the TSTART command and expecting an "okay" ,
+    //there are some unexpected bytes left in the buffer.
+    // this issue is explained in bug 11825
 	m_TrackingDevice->ClearReceiveBuffer(); // This is a workaround for a linux specific issue:
-	// after sending the TSTART command and expecting an "okay" there are some unexpected bytes left in the buffer.
-	// this issue is explained in bug 11825
 
 	returnValue = m_TrackingDevice->Send(&fullcommand, m_UseCRC);
 
@@ -1428,7 +1439,7 @@ NDIErrorCode NDIProtocol::GenericCommand(const std::string command, const std::s
 		return returnValue;
 	}
 	/* wait for the trackingsystem to process the command */
-	itksys::SystemTools::Delay(100);
+    sleep(100);
 
 	/* read and parse the reply from tracking device */
 	// the reply for a generic command can be OKAY or ERROR##

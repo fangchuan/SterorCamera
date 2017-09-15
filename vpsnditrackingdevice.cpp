@@ -3,33 +3,40 @@
 #include "vpsigthardwareexception.h"
 #include <stdio.h>
 
-#include <itksys/SystemTools.hxx>
-#include <itkMutexLockHolder.h>
-
-typedef itk::MutexLockHolder<itk::FastMutexLock> MutexLockHolder;
-
 
 const unsigned char CR = 0xD; // == '\r' - carriage return
 const unsigned char LF = 0xA; // == '\n' - line feed
 
 
-NDITrackingDevice::NDITrackingDevice() :
-TrackingDevice(),m_DeviceName(""), m_PortNumber(SerialCommunication::COM5), m_BaudRate(SerialCommunication::BaudRate9600),
-m_DataBits(SerialCommunication::DataBits8), m_Parity(SerialCommunication::None), m_StopBits(SerialCommunication::StopBits1),
-m_HardwareHandshake(SerialCommunication::HardwareHandshakeOff),
-m_IlluminationActivationRate(Hz20), m_DataTransferMode(TX), m_6DTools(), m_ToolsMutex(NULL),
-m_SerialCommunication(NULL), m_SerialCommunicationMutex(NULL), m_DeviceProtocol(NULL),
-m_MultiThreader(NULL), m_ThreadID(0), m_OperationMode(ToolTracking6D), m_MarkerPointsMutex(NULL), m_MarkerPoints()
+NDITrackingDevice::NDITrackingDevice() :TrackingDevice(),
+    m_DeviceName(""),
+    m_BaudRate(BaudRate::Baud9600),
+    m_DataBits(DataBits::Data8),
+    m_Parity(Parity::NoParity),
+    m_StopBits(StopBits::OneStop),
+    m_HardwareHandshake(FlowControl::NoFlowControl),
+    m_IlluminationActivationRate(Hz20),
+    m_DataTransferMode(TX),
+    m_6DTools(),
+    m_ToolsMutex(NULL),
+    m_SerialCommunication(NULL),
+    m_SerialCommunicationMutex(NULL),
+    m_DeviceProtocol(NULL),
+    m_MultiThreader(NULL),
+    m_ThreadID(0),
+    m_OperationMode(ToolTracking6D),
+    m_MarkerPointsMutex(NULL),
+    m_MarkerPoints()
 {
 	m_Data = DeviceDataUnspecified;
 	m_6DTools.clear();
-	m_SerialCommunicationMutex = itk::FastMutexLock::New();
-	m_DeviceProtocol = NDIProtocol::New();
-	m_DeviceProtocol->SetTrackingDevice(this);
-	m_DeviceProtocol->UseCRCOn();
-	m_MultiThreader = itk::MultiThreader::New();
-	m_ToolsMutex = itk::FastMutexLock::New();
-	m_MarkerPointsMutex = itk::FastMutexLock::New();
+    m_SerialCommunicationMutex = new QMutex();
+    m_DeviceProtocol = new NDIProtocol();
+    m_DeviceProtocol->SetTrackingDevice(this);
+    m_DeviceProtocol->SetUseCRC(true);
+    m_MultiThreader = new QThread();
+    m_ToolsMutex = new QMutex();
+    m_MarkerPointsMutex = new QMutex();
 	m_MarkerPoints.reserve(50);   // a maximum of 50 marker positions can be reported by the tracking device
 }
 
@@ -60,9 +67,7 @@ bool NDITrackingDevice::UpdateTool(TrackingTool* tool)
 			return false;
 
 		return true;
-	}
-	else
-	{
+    }else{
 		return false;
 	}
 }
@@ -84,13 +89,13 @@ NDITrackingDevice::~NDITrackingDevice()
 		this->CloseConnection();
 	}
 	/* cleanup tracking thread */
-	if ((m_ThreadID != 0) && (m_MultiThreader.IsNotNull()))
+    if ((m_ThreadID != 0) && (m_MultiThreader != NULL))
 	{
 		m_MultiThreader->TerminateThread(m_ThreadID);
 	}
 	m_MultiThreader = NULL;
 	/* free serial communication interface */
-	if (m_SerialCommunication.IsNotNull())
+    if (m_SerialCommunication != NULL)
 	{
 		m_SerialCommunication->ClearReceiveBuffer();
 		m_SerialCommunication->ClearSendBuffer();
@@ -99,29 +104,15 @@ NDITrackingDevice::~NDITrackingDevice()
 	}
 }
 
-
-void NDITrackingDevice::SetPortNumber(const PortNumber _arg)
-{
-	if (this->GetState() != Setup)
-		return;
-	itkDebugMacro("setting PortNumber to " << _arg);
-	if (this->m_PortNumber != _arg)
-	{
-		this->m_PortNumber = _arg;
-		this->Modified();
-	}
-}
-
-
 void NDITrackingDevice::SetDeviceName(std::string _arg)
 {
 	if (this->GetState() != Setup)
 		return;
-	itkDebugMacro("setting eviceName to " << _arg);
-	if (this->m_DeviceName != _arg)
-	{
+#ifdef USE_DEBUG
+    qDebug()<<"setting eviceName to " << _arg;
+#endif
+	if (this->m_DeviceName != _arg){
 		this->m_DeviceName = _arg;
-		this->Modified();
 	}
 }
 
@@ -130,11 +121,11 @@ void NDITrackingDevice::SetBaudRate(const BaudRate _arg)
 {
 	if (this->GetState() != Setup)
 		return;
-	itkDebugMacro("setting BaudRate to " << _arg);
-	if (this->m_BaudRate != _arg)
-	{
+#ifdef USE_DEBUG
+    qDebug()<<"setting BaudRate to " << _arg;
+#endif
+	if (this->m_BaudRate != _arg){
 		this->m_BaudRate = _arg;
-		this->Modified();
 	}
 }
 
@@ -143,11 +134,11 @@ void NDITrackingDevice::SetDataBits(const DataBits _arg)
 {
 	if (this->GetState() != Setup)
 		return;
-	itkDebugMacro("setting DataBits to " << _arg);
-	if (this->m_DataBits != _arg)
-	{
+#ifdef USE_DEBUG
+    qDebug()<<"setting DataBits to " << _arg;
+#endif
+	if (this->m_DataBits != _arg){
 		this->m_DataBits = _arg;
-		this->Modified();
 	}
 }
 
@@ -156,11 +147,11 @@ void NDITrackingDevice::SetParity(const Parity _arg)
 {
 	if (this->GetState() != Setup)
 		return;
-	itkDebugMacro("setting Parity to " << _arg);
-	if (this->m_Parity != _arg)
-	{
+#ifdef USE_DEBUG
+    qDebug()<<"setting Parity to " << _arg;
+#endif
+	if (this->m_Parity != _arg){
 		this->m_Parity = _arg;
-		this->Modified();
 	}
 }
 
@@ -169,24 +160,24 @@ void NDITrackingDevice::SetStopBits(const StopBits _arg)
 {
 	if (this->GetState() != Setup)
 		return;
-	itkDebugMacro("setting StopBits to " << _arg);
-	if (this->m_StopBits != _arg)
-	{
+#ifdef USE_DEBUG
+    qDebug()<<"setting StopBits to " << _arg;
+#endif
+    if (this->m_StopBits != _arg){
 		this->m_StopBits = _arg;
-		this->Modified();
 	}
 }
 
 
-void NDITrackingDevice::SetHardwareHandshake(const HardwareHandshake _arg)
+void NDITrackingDevice::SetHardwareHandshake(const FlowControl _arg)
 {
 	if (this->GetState() != Setup)
 		return;
-	itkDebugMacro("setting HardwareHandshake to " << _arg);
-	if (this->m_HardwareHandshake != _arg)
-	{
+#ifdef USE_DEBUG
+    qDebug()<<"setting HardwareHandshake to " << _arg;
+#endif
+	if (this->m_HardwareHandshake != _arg){
 		this->m_HardwareHandshake = _arg;
-		this->Modified();
 	}
 }
 
@@ -195,12 +186,14 @@ void NDITrackingDevice::SetIlluminationActivationRate(const IlluminationActivati
 {
 	if (this->GetState() == Tracking)
 		return;
-	itkDebugMacro("setting IlluminationActivationRate to " << _arg);
-	if (this->m_IlluminationActivationRate != _arg)
-	{
+#ifdef USE_DEBUG
+    qDebug()<<"setting IlluminationActivationRate to " << _arg;
+#endif
+    if (this->m_IlluminationActivationRate != _arg){
+    // if the connection to the tracking system is established,
+    // send the new rate to the tracking device too
 		this->m_IlluminationActivationRate = _arg;
-		this->Modified();
-		if (this->GetState() == Ready)   // if the connection to the tracking system is established, send the new rate to the tracking device too
+        if (this->GetState() == Ready)
 			m_DeviceProtocol->IRATE(this->m_IlluminationActivationRate);
 	}
 }
@@ -208,11 +201,11 @@ void NDITrackingDevice::SetIlluminationActivationRate(const IlluminationActivati
 
 void NDITrackingDevice::SetDataTransferMode(const DataTransferMode _arg)
 {
-	itkDebugMacro("setting DataTransferMode to " << _arg);
-	if (this->m_DataTransferMode != _arg)
-	{
+#ifdef USE_DEBUG
+    qDebug()<<"setting DataTransferMode to " << _arg;
+#endif
+	if (this->m_DataTransferMode != _arg){
 		this->m_DataTransferMode = _arg;
-		this->Modified();
 	}
 }
 
@@ -234,25 +227,27 @@ NDIErrorCode NDITrackingDevice::Send(const std::string* input, bool addCRC)
 	// Clear send buffer
 	this->ClearSendBuffer();
 	// Send the date to the device
-	MutexLockHolder lock(*m_SerialCommunicationMutex); // lock and unlock the mutex
-	long returnvalue = m_SerialCommunication->Send(message);
+    QMutexLocker lock(m_SerialCommunicationMutex); // lock and unlock the mutex
+    long returnvalue = m_SerialCommunication->write(message.data());
 
-	if (returnvalue == 0)
+    if (returnvalue == -1)
 		return SERIALSENDERROR;
 	else
 		return NDIOKAY;
 }
 
 
-NDIErrorCode NDITrackingDevice::Receive(std::string* answer, unsigned int numberOfBytes)
+NDIErrorCode NDITrackingDevice::Receive(std::string *answer, unsigned int numberOfBytes)
 {
 	if (answer == NULL)
 		return SERIALRECEIVEERROR;
 
-	MutexLockHolder lock(*m_SerialCommunicationMutex); // lock and unlock the mutex
-	long returnvalue = m_SerialCommunication->Receive(*answer, numberOfBytes);  // never read more bytes than the device has send, the function will block until enough bytes are send...
-
-	if (returnvalue == 0)
+    char *data = answer->data();
+    QMutexLocker lock(m_SerialCommunicationMutex); // lock and unlock the mutex
+    // never read more bytes than the device has send,
+    //the function will block until enough bytes are send...
+    long returnvalue = m_SerialCommunication->read(data, numberOfBytes);
+    if (returnvalue <= 0)
 		return SERIALRECEIVEERROR;
 	else
 		return NDIOKAY;
@@ -264,51 +259,42 @@ NDIErrorCode NDITrackingDevice::ReceiveByte(char* answer)
 	if (answer == NULL)
 		return SERIALRECEIVEERROR;
 
-	std::string m;
+    QMutexLocker lock(m_SerialCommunicationMutex); // lock and unlock the mutex
+    long returnvalue = m_SerialCommunication->read(answer, 1);
 
-	MutexLockHolder lock(*m_SerialCommunicationMutex); // lock and unlock the mutex
-
-	long returnvalue = m_SerialCommunication->Receive(m, 1);
-
-	if ((returnvalue == 0) ||(m.size() != 1))
+    if ((returnvalue <= 0) )
 		return SERIALRECEIVEERROR;
 
-	*answer = m.at(0);
 	return NDIOKAY;
 }
 
 
-NDIErrorCode NDITrackingDevice::ReceiveLine(std::string* answer)
+NDIErrorCode NDITrackingDevice::ReceiveLine(std::string *answer)
 {
 	if (answer == NULL)
 		return SERIALRECEIVEERROR;
 
-	std::string m;
-
-	MutexLockHolder lock(*m_SerialCommunicationMutex); // lock and unlock the mutex
-
-	do
-	{
-		long returnvalue = m_SerialCommunication->Receive(m, 1);
-		if ((returnvalue == 0) ||(m.size() != 1))
-			return SERIALRECEIVEERROR;
-		*answer += m;
-	} while (m.at(0) != LF);
-	return NDIOKAY;
+    QMutexLocker lock(m_SerialCommunicationMutex); // lock and unlock the mutex
+    char *data = answer->data();
+    qint64 bytes = m_SerialCommunication->readLine(data);
+    if(bytes > 0)
+        return NDIOKAY;
+    else
+        return SERIALRECEIVEERROR;
 }
 
 
 void NDITrackingDevice::ClearSendBuffer()
 {
 	MutexLockHolder lock(*m_SerialCommunicationMutex); // lock and unlock the mutex
-	m_SerialCommunication->ClearSendBuffer();
+    m_SerialCommunication->clear(QSerialPort::Output);
 }
 
 
 void NDITrackingDevice::ClearReceiveBuffer()
 {
-	MutexLockHolder lock(*m_SerialCommunicationMutex); // lock and unlock the mutex
-	m_SerialCommunication->ClearReceiveBuffer();
+    QMutexLocker lock(m_SerialCommunicationMutex); // lock and unlock the mutex
+    m_SerialCommunication->clear(QSerialPort::Input);
 }
 
 
@@ -321,7 +307,9 @@ const std::string NDITrackingDevice::CalcCRC(const std::string* input)
 	static int oddparity[16] = {0, 1, 1, 0, 1, 0, 0, 1, 1, 0, 0, 1, 0, 1, 1, 0};
 	unsigned int data;  // copy of the input string's current character
 	unsigned int crcValue = 0;  // the crc value is stored here
-	unsigned int* puCRC16 = &crcValue;  // the algorithm uses a pointer to crcValue, so it's easier to provide that than to change the algorithm
+    // the algorithm uses a pointer to crcValue, so it's easier to provide that than to
+    //change the algorithm
+    unsigned int* puCRC16 = &crcValue;
 	for (unsigned int i = 0; i < input->length(); i++)
 	{
 		data = (*input)[i];
@@ -344,53 +332,59 @@ const std::string NDITrackingDevice::CalcCRC(const std::string* input)
 
 bool NDITrackingDevice::OpenConnection()
 {
+    if (this->GetState() != Setup){
+    //{vpsThrowException(IGTException) << "Can only try to open the connection if in setup mode";}
+#ifdef USE_DEBUG
+        qDebug()<<"Can only try to open the connection if in setup mode";
+#endif
+        return false;
+    }
 
-	//this->m_ModeMutex->Lock();
-	if (this->GetState() != Setup)
-	{vpsThrowException(IGTException) << "Can only try to open the connection if in setup mode";}
-
-	m_SerialCommunication = SerialCommunication::New();
+    m_SerialCommunication = new SerialWorker();
 
 	/* init local com port to standard com settings for a NDI tracking device:
 	9600 baud, 8 data bits, no parity, 1 stop bit, no hardware handshake */
 	if (m_DeviceName.empty())
-		m_SerialCommunication->SetPortNumber(m_PortNumber);
-	else
-		m_SerialCommunication->SetDeviceName(m_DeviceName);
-	m_SerialCommunication->SetBaudRate(SerialCommunication::BaudRate9600);
-	m_SerialCommunication->SetDataBits(SerialCommunication::DataBits8);
-	m_SerialCommunication->SetParity(SerialCommunication::None);
+        m_DeviceName = QString("/dev/ttyS0");
+
+    m_SerialCommunication->SetDeviceName(m_DeviceName);
+    m_SerialCommunication->SetBaudRate(BaudRate::Baud9600);
+    m_SerialCommunication->SetDataBits(DataBits::Data8);
+    m_SerialCommunication->SetParity(Parity::NoParity);
 	m_SerialCommunication->SetStopBits(SerialCommunication::StopBits1);
-	m_SerialCommunication->SetSendTimeout(5000);
-	m_SerialCommunication->SetReceiveTimeout(5000);
-	if (m_SerialCommunication->OpenConnection() == 0) // 0 == ERROR_VALUE
+
+    if (m_SerialCommunication->OpenConnection() != 0) // 0 == ERROR_VALUE
 	{
 		m_SerialCommunication->CloseConnection();
-		vpsThrowException(IGTHardwareException) << "Can not open serial port";
+        //vpsThrowException(IGTHardwareException) << "Can not open serial port";
 	}
 
 	/* Reset Tracking device by sending a serial break for 500ms */
 	m_SerialCommunication->SendBreak(400);
 
 	/* Read answer from tracking device (RESETBE6F) */
-	static const std::string reset("RESETBE6F\r");
-	std::string answer = "";
+    QByteArray reset("RESETBE6F\r");
+    QByteArray answer;
 	this->Receive(&answer, reset.length());  // read answer (should be RESETBE6F)
-	this->ClearReceiveBuffer();     // flush the receive buffer of all remaining data (carriage return, strings other than reset
-	if (reset.compare(answer) != 0)  // check for RESETBE6F
+    // flush the receive buffer of all remaining data (carriage return, strings other than reset
+    this->ClearReceiveBuffer();
+    if (!(reset == answer))  // check for RESETBE6F
 	{
-		if (m_SerialCommunication.IsNotNull())
-		{
+        if (m_SerialCommunication != NULL)		{
 			m_SerialCommunication->CloseConnection();
 		}
-		vpsThrowException(IGTHardwareException) << "Hardware Reset of tracking device did not work";
+        //vpsThrowException(IGTHardwareException) << "Hardware Reset of tracking device did not work";
 	}
 
 	/* Now the tracking device isSetData reset, start initialization */
 	NDIErrorCode returnvalue;
 
 	/* set device com settings to new values and wait for the device to change them */
-	returnvalue = m_DeviceProtocol->COMM(m_BaudRate, m_DataBits, m_Parity, m_StopBits, m_HardwareHandshake);
+    returnvalue = m_DeviceProtocol->COMM(m_BaudRate,
+                                         m_DataBits,
+                                         m_Parity,
+                                         m_StopBits,
+                                         m_HardwareHandshake);
 
 	if (returnvalue != NDIOKAY)
 	{vpsThrowException(IGTHardwareException) << "Could not set comm settings in trackingdevice";}
@@ -405,8 +399,6 @@ bool NDITrackingDevice::OpenConnection()
 	m_SerialCommunication->SetParity(m_Parity);
 	m_SerialCommunication->SetStopBits(m_StopBits);
 	m_SerialCommunication->SetHardwareHandshake(m_HardwareHandshake);
-	m_SerialCommunication->SetSendTimeout(5000);
-	m_SerialCommunication->SetReceiveTimeout(5000);
 	m_SerialCommunication->OpenConnection();
 
 

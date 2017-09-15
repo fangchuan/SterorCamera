@@ -26,28 +26,140 @@ SerialWorker::~SerialWorker()
     closeSerialPort();
 }
 
-void SerialWorker::readData()
+int SerialWorker::OpenConnection()
+{
+    if(this->open(QIODevice::ReadWrite)){
+#ifdef USE_DEBUG
+        qDebug()<<"open serial port successfully...";
+#endif
+        return 0;
+    }else{
+#ifdef USE_DEBUG
+        qDebug()<<"open serial port fail...";
+#endif
+        return -1;
+    }
+}
+
+int SerialWorker::CloseConnection()
+{
+    this->close();
+    return 0;
+}
+
+void SerialWorker::SetDeviceName(QString &portName)
+{
+    this->setPortName(portName);
+}
+
+bool SerialWorker::SetBaudRate(char baudRate)
+{
+    BaudRate rate;
+    switch(baudRate){
+    case '1':
+        rate = BaudRate::Baud4800;
+        break;
+    case '2':
+        rate = BaudRate::Baud19200;
+        break;
+    case '3':
+        rate = BaudRate::Baud38400;
+        break;
+    case '4':
+        rate = BaudRate::Baud57600;
+        break;
+    case '5':
+        rate = BaudRate::Baud115200;
+        break;
+    default:
+        rate = BaudRate::Baud9600;
+        break;
+    }
+    return  this->setBaudRate(rate);
+}
+
+bool SerialWorker::SetDataBits(char dataBits)
+{
+    StopBits bits;
+    switch(dataBits){
+    case '1':
+        bits = DataBits::Data7;
+        break;
+    default :
+        bits = DataBits::Data8;
+        break;
+    }
+    return this->setDataBits(bits);
+}
+
+bool SerialWorker::SetParity(char parity)
+{
+    Parity p;
+    switch (parity) {
+    case '1':
+        p = Parity::OddParity;
+        break;
+    case '2':
+        p = Parity::EvenParity;
+        break;
+    default:
+        p = Parity::NoParity;
+        break;
+    }
+    return this->setParity(p);
+}
+
+bool SerialWorker::SetStopBits(char stopBits)
+{
+    StopBits bits;
+    switch(stopBits){
+    case '1':
+        bits = StopBits::TwoStop;
+        break;
+    default :
+        bits = StopBits::OneStop;
+        break;
+    }
+   return this->setStopBits(bits);
+}
+
+bool SerialWorker::SetFlowControl(char flowControl)
+{
+    FlowControl fc;
+    switch (flowControl) {
+    case '1':
+        fc = FlowControl::HardwareControl;
+        break;
+    default:
+        fc = FlowControl::NoFlowControl;
+        break;
+    }
+    return this->setFlowControl(fc);
+}
+
+
+void SerialWorker::readData(QByteArray &data)
 {
     if (this->bytesAvailable())
     {
-        QByteArray request = this->readAll();
+        QByteArray data = this->readAll();
         if (m_IsUploadingFile)
         {
-            handleUploadFile(request);
+            handleUploadFile(data);
             return ;
         }
 
-        QDataStream stream(request);
+        QDataStream stream(data);
         QString order;
         stream >> order;
         if (order.toLower() == "uploadfile")
         {
             m_IsUploadingFile = true;
-            handleUploadFile(request);
+            handleUploadFile(data);
             return ;
         }
 
-        switch(TrackerMessageTranslator::translate(request))
+        switch(TrackerMessageTranslator::translate(data))
         {
         case Tracker::START_TRACKING:
             {
@@ -59,8 +171,7 @@ void SerialWorker::readData()
                 emit stopTracking();
             }
             break;
-        case Tracker::START_MANUFACTURING:
-            {
+        case Tracker::START_MANUFACTURING:{
                 emit startManufacturing();
             }
             break;
@@ -85,25 +196,23 @@ void SerialWorker::readData()
             }
             break;
         }
+#ifdef USE_DEBUG
         qDebug()<< request;
+#endif
     }
 
 }
 
-bool SerialWorker::setup()
+bool SerialWorker::setUpDefault()
 {
     this->setPortName("ttyS0");
-    this->setBaudRate(QSerialPort::Baud115200);
+    this->setBaudRate(QSerialPort::Baud9600);
     this->setDataBits(QSerialPort::Data8);
     this->setParity(QSerialPort::NoParity);
     this->setStopBits(QSerialPort::OneStop);
     this->setFlowControl(QSerialPort::NoFlowControl);
 
-    if(this->open(QIODevice::ReadWrite)){
-        qDebug()<<"open successfully";
-        return true;
-    }else
-        return false;
+    return true;
 
 }
 

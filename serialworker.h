@@ -12,6 +12,15 @@ public:
     SerialWorker(QObject* parent = NULL);
     ~SerialWorker();
 
+    void SetDeviceName(QString &portName);
+    bool SetBaudRate(char buadRate);
+    bool SetDataBits(char dataBits);
+    bool SetParity(char parity);
+    bool SetStopBits(char stopBits);
+    bool SetFlowControl(char flowControl);
+    int OpenConnection();
+    int CloseConnection();
+
 signals:
     void startTracking();
     void stopTracking();
@@ -27,9 +36,9 @@ signals:
     void stopTimer();
     void closed();
 public slots:
-    bool setup();
+    bool setUpDefault();
     void closeSerialPort();
-    void readData();
+    void readData(QByteArray &data);
     void handleError(const QByteArray& error);
     void sendMessage(const QByteArray& msg);
 private slots:
