@@ -1,7 +1,4 @@
-#include "TrackerImageProcessor.h"
-#include "TrackerImagepool.h"
-#include "Tracker.h"
-#include "TrackerCommon.h"
+#include "includes.h"
 #include "Image.h"
 
 #include "opencv2/highgui/highgui.hpp"
@@ -10,8 +7,7 @@
 #include <vector>
 
 #include <QDataStream>
-
-//#include <Windows.h>
+#include <QDebug>
 
 using namespace FlyCapture2;
 
@@ -245,7 +241,9 @@ void TrackerImageProcessor::process()
 		}
 		break;
 	}
-
+#ifdef USE_DEBUG
+    qDebug()<<"image process starting...";
+#endif
 	if (!m_SocketOverload)
 	{
 		emit result(r);

@@ -1,6 +1,4 @@
-#include "serialworker.h"
-#include "TrackerMessageTranslator.h"
-#include "Tracker.h"
+#include "includes.h"
 #include <QFile>
 #include <QDataStream>
 #include <QDebug>
@@ -8,10 +6,13 @@
 SerialWorker::SerialWorker(QObject *parent):
     QSerialPort(parent),
     m_timer(new QTimer(this)),
+    m_interpreter(new SerialInterpreter),
     m_IsUploadingFile(false),
     m_IsAppendingFile(false)
 
 {
+    m_interpreter->setSerialPort(this);
+
     connect(this, SIGNAL(startTimer(int)), m_timer, SLOT(start(int)));
     connect(this, SIGNAL(stopTimer()), m_timer, SLOT(stop()));
     connect(m_timer, SIGNAL(timeout()), this, SLOT(checkBusJam()));
@@ -19,6 +20,9 @@ SerialWorker::SerialWorker(QObject *parent):
     connect(this, SIGNAL(readyRead()), this, SLOT(readData()));
     connect(this, SIGNAL(error(QSerialPort::SerialPortError)),
             this, SLOT(handleFatalError(QSerialPort::SerialPortError)));
+
+    connect(m_interpreter, SIGNAL(startTracking()), this, SIGNAL(startTracking()));
+    connect(m_interpreter, SIGNAL(stopTracking()), this, SIGNAL(stopTracking()));
 }
 
 SerialWorker::~SerialWorker()
@@ -80,7 +84,7 @@ bool SerialWorker::SetBaudRate(char baudRate)
 
 bool SerialWorker::SetDataBits(char dataBits)
 {
-    StopBits bits;
+    DataBits bits;
     switch(dataBits){
     case '1':
         bits = DataBits::Data7;
@@ -143,62 +147,50 @@ void SerialWorker::readData(QByteArray &data)
     if (this->bytesAvailable())
     {
         QByteArray data = this->readAll();
-//        if (m_IsUploadingFile)
-//        {
-//            handleUploadFile(data);
-//            return ;
-//        }
-
-//        QDataStream stream(data);
-//        QString order;
-//        stream >> order;
-//        if (order.toLower() == "uploadfile")
-//        {
-//            m_IsUploadingFile = true;
-//            handleUploadFile(data);
-//            return ;
-//        }
-
-        switch(TrackerMessageTranslator::translate(data))
-        {
-        case Tracker::START_TRACKING:
-            {
-                emit startTracking();
-            }
-            break;
-        case Tracker::STOP_TRACKING:
-            {
-                emit stopTracking();
-            }
-            break;
-        case Tracker::START_MANUFACTURING:{
-                emit startManufacturing();
-            }
-            break;
-        case Tracker::MANUFACTURE:
-            {
-                emit manufacting();
-        }
-            break;
-        case Tracker::STOP_MANUFACTURING:
-            {
-                emit stopManufacturing();
-            }
-            break;
-        case Tracker::START_DIAGNOSING:
-            {
-                emit startDiagnosing();
-            }
-            break;
-        case Tracker::STOP_DIAGNOSING:
-            {
-                emit stopDiagnosing();
-            }
-            break;
-        }
 #ifdef USE_DEBUG
-        qDebug()<< request;
+        qDebug() << "read data from serialport...";
+        qDebug() << data;
 #endif
+        m_interpreter->cmdInterpreter(data);
+
+//        switch(TrackerMessageTranslator::translate(data))
+//        {
+//        case Tracker::START_TRACKING:
+//            {
+//                emit startTracking();
+//            }
+//            break;
+//        case Tracker::STOP_TRACKING:
+//            {
+//                emit stopTracking();
+//            }
+//            break;
+//        case Tracker::START_MANUFACTURING:{
+//                emit startManufacturing();
+//            }
+//            break;
+//        case Tracker::MANUFACTURE:
+//            {
+//                emit manufacting();
+//        }
+//            break;
+//        case Tracker::STOP_MANUFACTURING:
+//            {
+//                emit stopManufacturing();
+//            }
+//            break;
+//        case Tracker::START_DIAGNOSING:
+//            {
+//                emit startDiagnosing();
+//            }
+//            break;
+//        case Tracker::STOP_DIAGNOSING:
+//            {
+//                emit stopDiagnosing();
+//            }
+//            break;
+//        }
+
     }
 
 }
@@ -268,7 +260,7 @@ bool  SerialWorker::handleUploadFile(const QByteArray& data)
 
             m_IsAppendingFile = false;
         }
-        if(m_FileData.endsWith(QByteArray("00")))//后补0结尾的说明dataLength<128
+        if(m_FileData.endsWith(QByteArray("0000")))//后补0结尾的说明dataLength<128
         {
             if(!saveFile())
                 return false;
@@ -286,7 +278,7 @@ bool SerialWorker::saveFile()
     if(file.open(QIODevice::WriteOnly) == true){
         qint64 counts = file.write(m_FileData);
         if(counts < 0)
-            return fasle;
+            return false;
         file.close();
     }else
         return false;

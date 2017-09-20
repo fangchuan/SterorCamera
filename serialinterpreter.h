@@ -10,14 +10,16 @@
 
 class SerialWorker;
 
-class SerialInterpreter
+
+
+class SerialInterpreter: public QObject
 {
 
 #define LF 0x0A
 #define CR 0x0D
 
 #define REPLAY_OKAY    "OKAY"
-#define REPLAY_BREAK  "RESET"
+#define REPLAY_RESET  "RESET"
 
 
 #define ERROR_INVALID_COMMAND  "ERROR01"
@@ -83,6 +85,7 @@ class SerialInterpreter
 #define    COMMAD_VSEL   "VSEL:" //ets the tracking volume to the given type. Check available tracking volumes with SFLIST first
 
 
+
 enum REPLAY_TYPE{
     REPLAY_BREAK = 0,
     REPLAY_OPERATION,
@@ -95,19 +98,24 @@ enum REPLAY_TYPE{
 
 };
 
+    Q_OBJECT
 public:
-    SerialInterpreter();
+    SerialInterpreter(QObject* parent = NULL);
 
     bool setSerialPort(SerialWorker *serial);
     const std::string calcCRC(const std::string* input);
     bool replay(int replayType, const std::__cxx11::string &data = std::string());
     NDIErrorCode cmdInterpreter(const QByteArray &data);
 
+signals:
+    void startTracking();
+    void stopTracking();
+    void startDiagnosing();
+    void stopDiagnosing();
 private:
     QByteArray m_crcValue;
     std::string m_commad;
     vpsToolManager *m_passiveTool;
-    QMutex *m_serialMutex;
     SerialWorker *m_serialCommunication;
 };
 

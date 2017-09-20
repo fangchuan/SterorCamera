@@ -4,6 +4,7 @@
 #include <QSerialPort>
 #include <QTimer>
 
+class SerialInterpreter;
 
 class SerialWorker : public QSerialPort
 {
@@ -49,6 +50,7 @@ private slots:
     bool saveFile();
 private:
 
+    SerialInterpreter* m_interpreter;
     QTimer *m_timer;
     bool m_IsUploadingFile;
     bool m_IsAppendingFile;

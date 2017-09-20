@@ -1,6 +1,4 @@
-#include "TrackerImageCapture.h"
-#include "TrackerLightsController.h"
-#include "TrackerImagepool.h"
+#include "includes.h"
 
 #include <BusManager.h>
 #include <Error.h>
@@ -8,8 +6,7 @@
 
 #include <QDataStream>
 #include <QDir>
-
-//#include <Windows.h>
+#include <QDebug>
 
 TrackerImageCapture::TrackerImageCapture()
 	: m_IsCapturing(false),
@@ -53,6 +50,10 @@ void TrackerImageCapture::startCapture()
 	m_IsCapturing = true;
 
 	capture();
+
+#ifdef USE_DEBUG
+    qDebug()<<"image capture start...";
+#endif
 }
 
 void TrackerImageCapture::capture()

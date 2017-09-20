@@ -1,9 +1,4 @@
-#include "TrackerServer.h"
-#include "serialworker.h"
-#include "TrackerImageCapture.h"
-#include "TrackerImageProcessor.h"
-#include "TrackerMessageTranslator.h"
-#include "Tracker.h"
+#include "includes.h"
 
 #include <QCoreApplication>
 
@@ -24,7 +19,7 @@ TrackerServer::TrackerServer(QObject *parent)
     m_Processor->moveToThread(imgThread);
 
     connect(m_serial, &SerialWorker::closed, serialThread, &QThread::quit);
-    connect(serialThread, &QThread::started, m_serial, &SerialWorker::setup);
+    connect(serialThread, &QThread::started, m_serial, &SerialWorker::setUpDefault);
     connect(serialThread, &QThread::finished,  m_serial, &SerialWorker::deleteLater);
     connect(serialThread, &QThread::finished, serialThread, &QThread::deleteLater);
 

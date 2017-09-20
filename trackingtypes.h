@@ -2,10 +2,9 @@
 #define TRACKINGTYPES_H_HEADER_INCLUDED_
 
 #include <vector>
+#include <string>
+#include "TrackerCommon.h"
 
-
-typedef itk::Point<double> MarkerPointType;
-typedef std::vector<MarkerPointType> MarkerPointContainerType;
 
 /**Documentation
 * \brief Error codes of NDI tracking devices

@@ -6,6 +6,7 @@
 
 #define MAX_TOOL  16
 
+//
 enum TrackingPriority
 {
     Static    = 'S',
@@ -13,22 +14,38 @@ enum TrackingPriority
     ButtonBox = 'B'
 };
 
+//port handle statu
+enum PortStatu{
+    PORT_FREE = 0,
+    PORT_OCCUPIED = 1,
+    PORT_INITED = 2,
+    PORT_ENABLED = 3,
+};
+// port handle structure
+struct PortHandle{
+  TrackingPriority priority;
+  std::string portName;
+  PortStatu  statu;
+};
+
+
+
 class vpsToolManager
 {
 public:
     static vpsToolManager* getInstance();
-    std::string getPortHandle();
-    void setPortHandle(std::string& port);
-    std::string getOccupiedPortHandle();
-    std::string getFreePortHandle();
+    PortHandle &getPortHandle();
+    void setPortHandle(std::string &port);
+    std::__cxx11::string getOccupiedPortHandle();
+    std::__cxx11::string getFreePortHandle();
     bool initPortHandle(std::string& data);
     bool setTrackingPriority(std::string& port, char priority);
+    char getTrackingPriority(std::string& port);
 private:
     vpsToolManager();
     ~vpsToolManager();
 
-    TrackingPriority m_tarckPriority;
-    std::vector<std::string>  m_portPool;
+    std::vector<PortHandle>  m_portPool;
     int m_portIndex;
     static  vpsToolManager *m_Instance;
 };

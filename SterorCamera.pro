@@ -68,7 +68,8 @@ HEADERS += \
 #    vps_quaternion.h \
     serialinterpreter.h \
     vpstoolmanager.h \
-    trackingtypes.h
+    trackingtypes.h \
+    includes.h
 
 DISTFILES += \
     README.md

@@ -1,22 +1,34 @@
-#include "serialinterpreter.h"
+#include "includes.h"
+#include <QDebug>
 
-SerialInterpreter::SerialInterpreter():
+
+SerialInterpreter::SerialInterpreter(QObject* parent):QObject(parent),
     m_serialCommunication(NULL),
-    m_commad(""),
-    m_serialMutex( new QMutex)
+    m_passiveTool(NULL),
+    m_commad("")
 {
 
 }
 
+SerialInterpreter::~SerialInterpreter()
+{
+
+}
+
+//
+//
+//
 bool SerialInterpreter::replay(int replayType, const std::string &data)
 {
-    QByteArray fullReplay;
+    if(m_serialCommunication == NULL)
+        return false;
 
+    QByteArray fullReplay;
 
     switch(replayType){
     case REPLAY_BREAK:
-        m_crcValue = QByteArray(calcCRC(REPLAY_BREAK).c_str());
-        fullReplay = QByteArray(tmp.c_str()) + m_crcValue;
+        m_crcValue = QByteArray(calcCRC(REPLAY_RESET).c_str());
+        fullReplay = QByteArray(REPLAY_RESET) + m_crcValue;
         break;
     case REPLAY_OPERATION:
         m_crcValue = QByteArray(calcCRC(&data).c_str());
@@ -66,19 +78,23 @@ bool SerialInterpreter::replay(int replayType, const std::string &data)
         break;
     }
     fullReplay.append('\r');
-    m_serialMutex->lock();
+
+#ifdef USE_DEBUG
+    qDebug() << fullReplay;
+#endif
+
     bool ret = m_serialCommunication->sendMessage(fullReplay);
-    m_serialMutex->unlock();
     return ret;
 }
 
+//
+//
+//
 NDIErrorCode SerialInterpreter::cmdInterpreter(const QByteArray &data)
 {
     if(data.at(0) == '0' ){  //Reset the system, reset serial communication parameter
         replay(REPLAY_BREAK);
-        m_serialMutex->lock();
         m_serialCommunication->setUpDefault();
-        m_serialMutex->unlock();
         return NDIOKAY;
     }
 
@@ -90,17 +106,18 @@ NDIErrorCode SerialInterpreter::cmdInterpreter(const QByteArray &data)
         switch(m_commad){
         case COMMAD_COMM: //set serial communication parameter
             //COMM:<Baudrate><Databits><Parity><Stopbits><HardwareHandShaking><CRC16>
-            m_serialMutex->lock();
-            bool retB = m_serialCommunication->SetBaudRate(data.at(colonPos+1));
-            bool retD = m_serialCommunication->SetDataBits(data.at(colonPos+2));
-            bool retP = m_serialCommunication->SetParity(data.at(colonPos+3));
-            bool retF = m_serialCommunication->SetFlowControl(data.at(colonPos+4));
-            m_serialMutex->unlock();
-            if(retB == true && retD == true && retP == true && retF == true){
+            if(m_serialCommunication == NULL)
+                return SERIALINTERFACENOTSET;
+            if(m_serialCommunication->SetBaudRate(data.at(colonPos+1))
+               && m_serialCommunication->SetDataBits(data.at(colonPos+2))
+               && m_serialCommunication->SetParity(data.at(colonPos+3))
+               && m_serialCommunication->SetFlowControl(data.at(colonPos+4)) )
+            {
                 replay(REPLAY_OPERATION, REPLAY_OKAY);
-            }else{
-                replay(REPLAY_OPERATION, ERROR_INCORRECT_NUMBER_OF_PARAMETERS); //07 represent for incorrect number param
-
+            }else
+            {
+                m_serialMutex->unlock();
+                replay(REPLAY_OPERATION, ERROR_INCORRECT_NUMBER_OF_PARAMETERS);
             }
             break;
         case COMMAD_INIT: //initialize serial port, beep, led
@@ -109,7 +126,7 @@ NDIErrorCode SerialInterpreter::cmdInterpreter(const QByteArray &data)
             if(true){
                 replay(REPLAY_OPERATION, REPLAY_OKAY);
             }else{
-                replay(REPLAY_OPERATION, ERROR_SYSTEM_NOT_INITIALIZED);//10 represent for system not initialized
+                replay(REPLAY_OPERATION, ERROR_SYSTEM_NOT_INITIALIZED);//
             }
             break;
         case COMMAD_APIREV:
@@ -132,10 +149,12 @@ NDIErrorCode SerialInterpreter::cmdInterpreter(const QByteArray &data)
             //DSTART:<ReplayOption><CRC16><CR>
             //...do nothing
             replay(REPLAY_OPERATION, REPLAY_OKAY);
+            emit startDiagnosing();
             break;
         case COMMAD_DSTOP://
             //...DO NOTHING
             replay(REPLAY_OPERATION, REPLAY_OKAY);
+            emit stopDiagnosing();
             break;
         case COMMAD_IRATE://设置红外灯板闪烁频率. 弃用
             //IRATE:<IlluminatorRate><CRC16><CR>
@@ -155,7 +174,7 @@ NDIErrorCode SerialInterpreter::cmdInterpreter(const QByteArray &data)
             {
                 replay(REPLAY_OPERATION, REPLAY_OKAY);
             }else{
-                replay(REPLAY_OPERATION, ERROR_INVALID_TRACKING_PRIORITY);
+                replay(REPLAY_OPERATION, ERROR_INVALID_TRACKING_PRIORITY);//ERROR_PORT_NOT_INITIALZED, ERROR_INVALID_PORTHANDLE
             }
             break;
         case COMMAD_PHF:
@@ -211,10 +230,12 @@ NDIErrorCode SerialInterpreter::cmdInterpreter(const QByteArray &data)
         case COMMAD_TSTART://开始跟踪
             //...
             replay(REPLAY_OPERATION, REPLAY_OKAY);
+            emit startTracking();
             break;
         case COMMAD_TSTOP://停止跟踪
             //...
             replay(REPLAY_OPERATION, REPLAY_OKAY);
+            emit stopTracking();
             break;
         case COMMAD_TX:
 //TX:<ReplyOption><CRC16><CR>
@@ -240,12 +261,18 @@ NDIErrorCode SerialInterpreter::cmdInterpreter(const QByteArray &data)
 
 }
 
+//
+//
+//
 bool SerialInterpreter::setSerialPort(SerialWorker *serial)
 {
     QMutexLocker lock(m_serialMutex);
     m_serialCommunication = serial;
 }
 
+//
+//
+//
 const std::string SerialInterpreter::calcCRC(const std::string* input)
 {
 

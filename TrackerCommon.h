@@ -20,4 +20,11 @@ typedef struct
 	float z;
 }Point3D;
 
+typedef struct
+{
+    double x;
+    double y;
+    double z;
+}Point3DDouble;
+
 #endif
