@@ -41,11 +41,12 @@ public slots:
     void readData(QByteArray &data);
     void handleError(const QByteArray& error);
     void sendMessage(const QByteArray& msg);
+    bool handleUploadFile(const QByteArray& data);
 private slots:
     void checkBusJam();
     void handleFatalError(QSerialPort::SerialPortError error);
-    void handleUploadFile(const QByteArray& data);
-    void saveFile();
+
+    bool saveFile();
 private:
 
     QTimer *m_timer;

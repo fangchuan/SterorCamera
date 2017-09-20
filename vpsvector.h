@@ -1,37 +1,35 @@
 #ifndef VECTOR_H_HEADER_INCLUDED_C1EBD0AD
 #define VECTOR_H_HEADER_INCLUDED_C1EBD0AD
 
-// this is needed for memcopy in ITK
-// can be removed when fixed in ITK
-#include <cstring>
 
-#include <itkPoint.h>
+#include <cstring>
+#include <vector>
 #include <float.h>
-#include <itkIndex.h>
-#include <itkContinuousIndex.h>
-#include <itkVector.h>
-#include <itkMatrix.h>
-#include <itkTransform.h>
-#include <vnl/vnl_quaternion.h>
+
+
+
+
+
+
 
 typedef double ScalarType;
 
-typedef itk::Matrix<ScalarType, 3, 3> Matrix3D;
-typedef itk::Matrix<ScalarType,4,4> Matrix4D;
-typedef vnl_matrix_fixed<ScalarType, 3, 3> VnlMatrix3D;
-typedef itk::Transform<ScalarType, 3, 3> Transform3D;
-typedef vnl_vector<ScalarType> VnlVector;
-typedef vnl_vector_ref<ScalarType> VnlVectorRef;
+//typedef :Matrix<ScalarType, 3, 3> Matrix3D;
+//typedef itk::Matrix<ScalarType,4,4> Matrix4D;
+//typedef vnl_matrix_fixed<ScalarType, 3, 3> VnlMatrix3D;
+//typedef itk::Transform<ScalarType, 3, 3> Transform3D;
+//typedef vnl_vector<ScalarType> VnlVector;
+//typedef vnl_vector_ref<ScalarType> VnlVectorRef;
 
-typedef itk::Point<ScalarType,2> Point2D;
-typedef itk::Point<ScalarType,3> Point3D;
-typedef itk::Point<ScalarType,4> Point4D;
-typedef itk::Point<int,2> Point2I;
-typedef itk::Point<int,3> Point3I;
-typedef itk::Point<int,4> Point4I;
-typedef itk::Vector<ScalarType,2> Vector2D;
-typedef itk::Vector<ScalarType,3> Vector3D;
-typedef itk::Index<3> Index3D;
+typedef std::vector<ScalarType, 2> Point2D;
+typedef std::vector<ScalarType,3> Point3D;
+typedef std::vector<ScalarType,4> Point4D;
+typedef std::vector<int,2> Point2I;
+typedef std::vector<int,3> Point3I;
+typedef std::vector<int,4> Point4I;
+typedef std::vector<ScalarType,2> Vector2D;
+typedef std::vector<ScalarType,3> Vector3D;
+typedef QIndex<3> Index3D;
 typedef itk::ContinuousIndex<ScalarType, 3> ContinuousIndex3D;
 typedef vnl_quaternion<ScalarType> Quaternion;
 

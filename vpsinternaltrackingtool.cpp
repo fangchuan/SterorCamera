@@ -1,15 +1,12 @@
 #include "vpsinternaltrackingtool.h"
 
-#include <itkMutexLockHolder.h>
 
-typedef itk::MutexLockHolder<itk::FastMutexLock> MutexLockHolder;
 
-InternalTrackingTool::InternalTrackingTool()
-: TrackingTool(),
-m_TrackingError(0.0f),
-m_Enabled(true),
-m_DataValid(false),
-m_ToolTipSet(false)
+InternalTrackingTool::InternalTrackingTool(): TrackingTool(),
+    m_TrackingError(0.0f),
+    m_Enabled(true),
+    m_DataValid(false),
+    m_ToolTipSet(false)
 {
 	m_Position[0] = 0.0f;
 	m_Position[1] = 0.0f;
@@ -26,13 +23,14 @@ m_ToolTipSet(false)
 	m_ToolTipRotation[1] = 0.0f;
 	m_ToolTipRotation[2] = 0.0f;
 	m_ToolTipRotation[3] = 1.0f;
+    m_MyMutex = new QMutex(this);
 }
 
 InternalTrackingTool::~InternalTrackingTool()
 {
 }
 
-void InternalTrackingTool::PrintSelf(std::ostream& os, itk::Indent indent) const
+void InternalTrackingTool::PrintSelf(std::ostream& os, unsigned int indent) const
 {
 	Superclass::PrintSelf(os, indent);
 
@@ -48,21 +46,17 @@ void InternalTrackingTool::PrintSelf(std::ostream& os, itk::Indent indent) const
 
 void InternalTrackingTool::SetToolName(const char* _arg)
 {
-	itkDebugMacro("setting  m_ToolName to " << _arg);
-	MutexLockHolder lock(*m_MyMutex); // lock and unlock the mutex
-	if ( _arg && (_arg == this->m_ToolName) )
-	{
+
+    QMutexLocker lock(m_MyMutex); // lock and unlock the mutex
+	if ( _arg && (_arg == this->m_ToolName) ){
 		return;
 	}
-	if (_arg)
-	{
+	if (_arg){
 		this->m_ToolName= _arg;
-	}
-	else
-	{
+    }else{
 		this->m_ToolName= "";
 	}
-	this->Modified();
+
 }
 
 
@@ -74,7 +68,7 @@ void InternalTrackingTool::SetToolName( const std::string _arg )
 
 void InternalTrackingTool::GetPosition(Point3D& position) const
 {
-	MutexLockHolder lock(*m_MyMutex); // lock and unlock the mutex
+    QMutexLocker lock(m_MyMutex); // lock and unlock the mutex
 	if (m_ToolTipSet)
 	{
 		// Compute the position of tool tip in the coordinate frame of the
@@ -93,25 +87,23 @@ void InternalTrackingTool::GetPosition(Point3D& position) const
 		position[1] = m_Position[1];
 		position[2] = m_Position[2];
 	}
-	this->Modified();
 }
 
 
 void InternalTrackingTool::SetPosition(Point3D position, ScalarType eps)
 {
-	itkDebugMacro("setting  m_Position to " << position);
+
 	if (!Equal(m_Position, position, eps))
 	{
-		MutexLockHolder lock(*m_MyMutex); // lock and unlock the mutex
+        QMutexLocker lock(m_MyMutex); // lock and unlock the mutex
 		m_Position = position;
-		this->Modified();
 	}
 }
 
 
 void InternalTrackingTool::GetOrientation(Quaternion& orientation) const
 {
-	MutexLockHolder lock(*m_MyMutex); // lock and unlock the mutex
+    QMutexLocker lock(m_MyMutex); // lock and unlock the mutex
 	if (m_ToolTipSet)
 	{
 		// Compute the orientation of the tool tip in the coordinate frame of
@@ -150,18 +142,15 @@ void InternalTrackingTool::SetToolTip(Point3D toolTipPosition,
 		}
 		m_ToolTip = toolTipPosition;
 		m_ToolTipRotation = orientation;
-		this->Modified();
 	}
 }
 
 void InternalTrackingTool::SetOrientation(Quaternion orientation, ScalarType eps)
 {
-	itkDebugMacro("setting  m_Orientation to " << orientation);
 	if (!Equal(m_Orientation, orientation, eps))
 	{
-		MutexLockHolder lock(*m_MyMutex); // lock and unlock the mutex
+        QMutexLocker lock(m_MyMutex); // lock and unlock the mutex
 		m_Orientation = orientation;
-		this->Modified();
 	}
 }
 
@@ -169,7 +158,7 @@ void InternalTrackingTool::SetOrientation(Quaternion orientation, ScalarType eps
 void InternalTrackingTool::SetTrackingError(float error)
 {
 	itkDebugMacro("setting  m_TrackingError  to " << error);
-	MutexLockHolder lock(*m_MyMutex); // lock and unlock the mutex
+    QMutexLocker lock(*m_MyMutex); // lock and unlock the mutex
 	if (error == m_TrackingError)
 	{
 		return;
@@ -181,7 +170,7 @@ void InternalTrackingTool::SetTrackingError(float error)
 
 float InternalTrackingTool::GetTrackingError() const
 {
-	MutexLockHolder lock(*m_MyMutex); // lock and unlock the mutex
+    QMutexLocker lock(*m_MyMutex); // lock and unlock the mutex
 	float r = m_TrackingError;
 	return r;
 }
@@ -189,7 +178,7 @@ float InternalTrackingTool::GetTrackingError() const
 
 bool InternalTrackingTool::Enable()
 {
-	MutexLockHolder lock(*m_MyMutex); // lock and unlock the mutex
+    QMutexLocker lock(*m_MyMutex); // lock and unlock the mutex
 	if (m_Enabled == false)
 	{
 		this->m_Enabled = true;
@@ -201,7 +190,7 @@ bool InternalTrackingTool::Enable()
 
 bool InternalTrackingTool::Disable()
 {
-	MutexLockHolder lock(*m_MyMutex); // lock and unlock the mutex
+    QMutexLocker lock(*m_MyMutex); // lock and unlock the mutex
 	if (m_Enabled == true)
 	{
 		this->m_Enabled = false;
@@ -213,19 +202,19 @@ bool InternalTrackingTool::Disable()
 
 bool InternalTrackingTool::IsEnabled() const
 {
-	MutexLockHolder lock(*m_MyMutex); // lock and unlock the mutex
+    QMutexLocker lock(*m_MyMutex); // lock and unlock the mutex
 	return m_Enabled;
 }
 
 bool InternalTrackingTool::IsTooltipSet() const
 {
-	MutexLockHolder lock(*m_MyMutex); // lock and unlock the mutex
+    QMutexLocker lock(*m_MyMutex); // lock and unlock the mutex
 	return m_ToolTipSet;
 }
 
 bool InternalTrackingTool::IsDataValid() const
 {
-	MutexLockHolder lock(*m_MyMutex); // lock and unlock the mutex
+    QMutexLocker lock(*m_MyMutex); // lock and unlock the mutex
 	return m_DataValid;
 }
 
@@ -235,7 +224,7 @@ void InternalTrackingTool::SetDataValid(bool _arg)
 	itkDebugMacro("setting m_DataValid to " << _arg);
 	if (this->m_DataValid != _arg)
 	{
-		MutexLockHolder lock(*m_MyMutex); // lock and unlock the mutex
+        QMutexLocker lock(*m_MyMutex); // lock and unlock the mutex
 		this->m_DataValid = _arg;
 		this->Modified();
 	}
@@ -244,7 +233,7 @@ void InternalTrackingTool::SetDataValid(bool _arg)
 void InternalTrackingTool::SetErrorMessage(const char* _arg)
 {
 	itkDebugMacro("setting  m_ErrorMessage  to " << _arg);
-	MutexLockHolder lock(*m_MyMutex); // lock and unlock the mutex
+    QMutexLocker lock(*m_MyMutex); // lock and unlock the mutex
 	if ((_arg == NULL) || (_arg == this->m_ErrorMessage))
 		return;
 

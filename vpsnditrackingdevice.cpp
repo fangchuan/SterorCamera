@@ -528,48 +528,6 @@ bool NDITrackingDevice::OpenConnection()
 	return true;
 }
 
-bool NDITrackingDevice::InitializeWiredTools()
-{
-	NDIErrorCode returnvalue;
-	std::string portHandle;
-	returnvalue = m_DeviceProtocol->PHSR(OCCUPIED, &portHandle);
-
-	if (returnvalue != NDIOKAY)
-	{vpsThrowException(IGTHardwareException) << "Could not obtain a list of port handles that are connected";}
-
-	/* if there are port handles that need to be initialized, initialize them. Furthermore instantiate tools for each handle that has no tool yet. */
-	std::string ph;
-
-	for (unsigned int i = 0; i < portHandle.size(); i += 2)
-	{
-		ph = portHandle.substr(i, 2);
-		NDIPassiveTool* pt = this->GetInternalTool(ph);
-		if ( pt == NULL) // if we don't have a tool, something is wrong. Tools should be discovered first by calling DiscoverWiredTools()
-			continue;
-
-		if (pt->GetSROMData() == NULL)
-			continue;
-
-		returnvalue = m_DeviceProtocol->PVWR(&ph, pt->GetSROMData(), pt->GetSROMDataLength());
-		if (returnvalue != NDIOKAY)
-		{vpsThrowException(IGTHardwareException) << (std::string("Could not write SROM file for tool '") + pt->GetToolName() + std::string("' to tracking device")).c_str();}
-
-		returnvalue = m_DeviceProtocol->PINIT(&ph);
-		if (returnvalue != NDIOKAY)
-		{vpsThrowException(IGTHardwareException) << (std::string("Could not initialize tool '") + pt->GetToolName()).c_str();}
-
-		if (pt->IsEnabled() == true)
-		{
-			returnvalue = m_DeviceProtocol->PENA(&ph, pt->GetTrackingPriority()); // Enable tool
-			if (returnvalue != NDIOKAY)
-			{
-				vpsThrowException(IGTHardwareException) << (std::string("Could not enable port '") + portHandle +
-					std::string("' for tool '")+ pt->GetToolName() + std::string("'")).c_str();
-			}
-		}
-	}
-	return true;
-}
 
 TrackingDeviceType NDITrackingDevice::TestConnection()
 {
@@ -619,15 +577,6 @@ TrackingDeviceType NDITrackingDevice::TestConnection()
 
 	/* Now the tracking device is reset, start initialization */
 	NDIErrorCode returnvalue;
-
-	/* initialize the tracking device */
-	//returnvalue = m_DeviceProtocol->INIT();
-	//if (returnvalue != NDIOKAY)
-	//{
-	//  this->SetErrorMessage("Could not initialize the tracking device");
-	//  return TrackingSystemNotSpecified;
-	//}
-
 
 	TrackingDeviceType deviceType;
 	returnvalue = m_DeviceProtocol->VER(deviceType);

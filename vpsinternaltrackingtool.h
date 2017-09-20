@@ -3,7 +3,7 @@
 
 #include <trackingtool.h>
 #include <vpsvector.h>
-#include <itkFastMutexLock.h>
+
 
 
 /**Documentation
@@ -20,9 +20,8 @@ class InternalTrackingTool : public TrackingTool
 {
 	friend class MicroBirdTrackingDevice; // Add all TrackingDevice subclasses that use InternalTrackingDevice directly
 public:
-	vpsClassMacro(InternalTrackingTool, TrackingTool);
 
-	virtual void PrintSelf(std::ostream& os, itk::Indent indent) const;
+    virtual void PrintSelf(std::ostream& os, unsigned int indent) const;
 
 	virtual void GetPosition(Point3D& position) const;    ///< returns the current position of the tool as an array of three floats (in the tracking device coordinate system)
 	virtual void GetOrientation(Quaternion& orientation) const;  ///< returns the current orientation of the tool as a quaternion (in the tracking device coordinate system)
@@ -42,7 +41,6 @@ public:
 	virtual void SetToolTip(Point3D toolTipPosition, Quaternion orientation = Quaternion(0,0,0,1), ScalarType eps=0.0); ///< defines a tool tip for this tool in tool coordinates. GetPosition() and GetOrientation() return the data of the tool tip if it is defined. By default no tooltip is defined.
 
 protected:
-	itkNewMacro(Self);
 	InternalTrackingTool();
 	virtual ~InternalTrackingTool();
 

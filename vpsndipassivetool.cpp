@@ -64,5 +64,73 @@ const unsigned char* NDIPassiveTool::GetSROMData() const
 
 unsigned int NDIPassiveTool::GetSROMDataLength() const
 {
-	return m_SROMDataLength;
+    return m_SROMDataLength;
+}
+
+void NDIPassiveTool::SetPortHandle(const std::string &_arg)
+{
+    if ( _arg == m_PortHandle  ){
+        return ;
+    }
+    if ( !_arg.empty() )
+    {
+      m_PortHandle = _arg;
+    }
+    else
+    {
+      m_PortHandle = "";
+    }
+}
+
+const char *NDIPassiveTool::GetPortHandle() const
+{
+    return m_PortHandle.c_str();
+
+}
+
+void NDIPassiveTool::SetFile(const std::string &_arg)
+{
+    if ( _arg == m_File  ){
+        return ;
+    }
+    if ( !_arg.empty() ){
+      m_File = _arg;
+    }else{
+      m_File = "";
+    }
+}
+
+const char *NDIPassiveTool::GetFile() const
+{
+    return m_File.c_str();
+}
+
+void NDIPassiveTool::SetSerialNumber(const std::string &_arg)
+{
+    if ( _arg == m_SerialNumber  ){
+        return ;
+    }
+    if ( !_arg.empty() ){
+      m_SerialNumber = _arg;
+    }else{
+      m_SerialNumber = "";
+    }
+}
+
+const char *NDIPassiveTool::GetSerialNumber() const
+{
+    return m_SerialNumber.c_str();
+}
+
+void NDIPassiveTool::SetTrackingPriority(NDIPassiveTool::TrackingPriority _arg)
+{
+    if( m_TrackingPriority != _arg )
+    {
+        m_TrackingPriority = _arg;
+    }
+}
+
+const NDIPassiveTool::TrackingPriority NDIPassiveTool::GetTrackingPriority() const
+{
+    return m_TrackingPriority;
 }

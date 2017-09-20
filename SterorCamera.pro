@@ -30,16 +30,18 @@ SOURCES += main.cpp \
     TrackerMessageTranslator.cpp \
     TrackerServer.cpp \
     serialworker.cpp \
-    trackingdevice.cpp \
-    trackingtool.cpp \
-    vpsvector.cpp \
-    vpsndiprotocol.cpp \
-    vpsserialcommunication.cpp \
-    vpsnditrackingdevice.cpp \
-    vpsinternaltrackingtool.cpp \
-    vpsigttimestamp.cpp \
-    vpsrealtimeclock.cpp \
-    serialinterpreter.cpp
+#    trackingdevice.cpp \
+#    trackingtool.cpp \
+#    vpsvector.cpp \
+#    vpsndiprotocol.cpp \
+#    vpsserialcommunication.cpp \
+#    vpsnditrackingdevice.cpp \
+#    vpsinternaltrackingtool.cpp \
+#    vpsigttimestamp.cpp \
+#    vpsrealtimeclock.cpp \
+#    vpsndipassivetool.cpp \
+    serialinterpreter.cpp \
+    vpstoolmanager.cpp
 
 HEADERS += \
     Tracker.h \
@@ -51,17 +53,21 @@ HEADERS += \
     TrackerMessageTranslator.h \
     TrackerServer.h \
     serialworker.h \
-    trackingdevice.h \
-    trackingtool.h \
-    vpscommon.h \
-    vpsvector.h \
-    vpsndiprotocol.h \
-    vpsserialcommunication.h \
-    vpsnditrackingdevice.h \
-    vpsinternaltrackingtool.h \
-    vpsigttimestamp.h \
-    vpsrealtimeclock.h \
+#    trackingdevice.h \
+#    trackingtool.h \
+#    vpscommon.h \
+#    vpsvector.h \
+#    vpsndiprotocol.h \
+#    vpsserialcommunication.h \
+#    vpsnditrackingdevice.h \
+#    vpsinternaltrackingtool.h \
+#    vpsigttimestamp.h \
+#    vpsrealtimeclock.h \
+#    trackingtypes.h \
+#    vpsndipassivetool.h \
+#    vps_quaternion.h \
     serialinterpreter.h \
+    vpstoolmanager.h \
     trackingtypes.h
 
 DISTFILES += \

@@ -143,21 +143,21 @@ void SerialWorker::readData(QByteArray &data)
     if (this->bytesAvailable())
     {
         QByteArray data = this->readAll();
-        if (m_IsUploadingFile)
-        {
-            handleUploadFile(data);
-            return ;
-        }
+//        if (m_IsUploadingFile)
+//        {
+//            handleUploadFile(data);
+//            return ;
+//        }
 
-        QDataStream stream(data);
-        QString order;
-        stream >> order;
-        if (order.toLower() == "uploadfile")
-        {
-            m_IsUploadingFile = true;
-            handleUploadFile(data);
-            return ;
-        }
+//        QDataStream stream(data);
+//        QString order;
+//        stream >> order;
+//        if (order.toLower() == "uploadfile")
+//        {
+//            m_IsUploadingFile = true;
+//            handleUploadFile(data);
+//            return ;
+//        }
 
         switch(TrackerMessageTranslator::translate(data))
         {
@@ -241,46 +241,55 @@ void SerialWorker::handleFatalError(QSerialPort::SerialPortError error)
     emit closed();
 }
 
-void SerialWorker::handleUploadFile(const QByteArray& data)
+bool  SerialWorker::handleUploadFile(const QByteArray& data)
 {
-    if (!m_IsAppendingFile)
-    {
-        // "UPLOADFILE" | FILE_NAME | FILE_LEGTH(qint64) | FILE_DATA
-        m_FileData.clear();
-        QDataStream stream(data);
-        QString order;
-        stream >> order;
-        stream >> m_Filename;
-        stream >> m_FileLength;
-        int pos = stream.device()->pos();
-        m_FileData = data.right(data.size()-pos);
-        if (m_FileData.length() >= m_FileLength)
-        {
-            saveFile();
-            m_IsUploadingFile = false;
+    // PortHandle(2bytes) | StartAddress(4bytes) | FILE_DATA(128bytes)
+    m_Filename = data.left(2);
+    int sequence;
+    sequence = data.mid(2,4).toInt();
+
+    if (m_IsAppendingFile){
+
+        m_FileData += data.mid(4, 128);
+
+        if (m_FileData.length() >= m_FileLength){
+            if( !saveFile() )
+                return false;
         }
-        else
-        {
+    }else{
+        if(sequence > 0)
             m_IsAppendingFile = true;
-        }
-    }
-    else
-    {
-        m_FileData.append(data);
+
+        m_FileData = data.mid(4, 128);
         if (m_FileData.length() >= m_FileLength)
         {
-            saveFile();
-            m_IsAppendingFile = m_IsUploadingFile = false;
+            if(!saveFile())
+                return false;
+
+            m_IsAppendingFile = false;
+        }
+        if(m_FileData.endsWith(QByteArray("00")))//后补0结尾的说明dataLength<128
+        {
+            if(!saveFile())
+                return false;
+
+            m_IsAppendingFile = false;
         }
     }
+    // check crc value
+
 }
 
-void SerialWorker::saveFile()
+bool SerialWorker::saveFile()
 {
     QFile file(m_Filename);
-    file.open(QIODevice::WriteOnly);
-    file.write(m_FileData);
-    file.close();
+    if(file.open(QIODevice::WriteOnly) == true){
+        qint64 counts = file.write(m_FileData);
+        if(counts < 0)
+            return fasle;
+        file.close();
+    }else
+        return false;
 }
 
 void SerialWorker::checkBusJam()
