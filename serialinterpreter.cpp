@@ -99,6 +99,8 @@ NDIErrorCode SerialInterpreter::cmdInterpreter(const QByteArray &data)
             //COMM:<Baudrate><Databits><Parity><Stopbits><HardwareHandShaking><CRC16>
             if(m_serialCommunication == NULL)
                 return SERIALINTERFACENOTSET;
+            m_serialCommunication->CloseConnection();
+
             if(m_serialCommunication->SetBaudRate(data.at(colonPos+1))
                && m_serialCommunication->SetDataBits(data.at(colonPos+2))
                && m_serialCommunication->SetParity(data.at(colonPos+3))

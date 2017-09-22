@@ -144,8 +144,6 @@ bool SerialWorker::SetFlowControl(char flowControl)
 
 void SerialWorker::readData()
 {
-    if (this->bytesAvailable())
-    {
         QByteArray data = this->readAll();
 #ifdef USE_DEBUG
         qDebug() << "read data from serialport...";
@@ -191,7 +189,6 @@ void SerialWorker::readData()
 //            break;
 //        }
 
-    }
 
 }
 
@@ -204,7 +201,16 @@ bool SerialWorker::setUpDefault()
     this->setStopBits(QSerialPort::OneStop);
     this->setFlowControl(QSerialPort::NoFlowControl);
 
-    return true;
+    if(this->open(QIODevice::ReadWrite))
+    {
+        qDebug() << "Open Serial port 0 success...";
+        return true;
+    }
+    else
+    {
+        qDebug() << "open Serial port 0 failed...";
+        return false;
+    }
 
 }
 
