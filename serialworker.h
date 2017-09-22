@@ -39,9 +39,9 @@ signals:
 public slots:
     bool setUpDefault();
     void closeSerialPort();
-    void readData(QByteArray &data);
+    void readData();
     void handleError(const QByteArray& error);
-    void sendMessage(const QByteArray& msg);
+    bool sendMessage(const QByteArray& msg);
     bool handleUploadFile(const QByteArray& data);
 private slots:
     void checkBusJam();
@@ -50,13 +50,13 @@ private slots:
     bool saveFile();
 private:
 
-    SerialInterpreter* m_interpreter;
     QTimer *m_timer;
     bool m_IsUploadingFile;
     bool m_IsAppendingFile;
     QString m_Filename;
     QByteArray m_FileData;
     qint64 m_FileLength;
+    SerialInterpreter* m_interpreter;
 
 };
 

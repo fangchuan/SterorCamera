@@ -1,4 +1,4 @@
-#include "vpstoolmanager.h"
+#include "includes.h"
 #include <iostream>
 #include <QDebug>
 
@@ -13,7 +13,8 @@ vpsToolManager::vpsToolManager()
     int i = 0;
     for (; i < MAX_TOOL; i ++){
         sprintf(portData, "%02X", i);
-        setPortHandle(std::string(portData));
+        std::string pd(portData);
+        setPortHandle(pd);
     }
 }
 
@@ -29,18 +30,18 @@ vpsToolManager *vpsToolManager::getInstance()
 
 }
 
-PortHandle& vpsToolManager::getPortHandle()
+std::string vpsToolManager::getPortHandle()
 {
     if(m_portIndex < MAX_TOOL){
         PortHandle& ph = m_portPool.at(m_portIndex);
         ph.statu = PORT_OCCUPIED;
         m_portIndex ++;
-        return ph;
+        return ph.portName;
     }else{
 #ifdef USE_DEBUG
         qDebug() << "PortHandle assign out of bound!!!";
 #endif
-        return NULL;
+        return "";
     }
 }
 
@@ -57,12 +58,12 @@ void vpsToolManager::setPortHandle(std::string& port)
 std::string vpsToolManager::getOccupiedPortHandle()
 {
     std::string out;
-    for(int i =0; i < m_portIndex; i++)
+    for(unsigned int i =0; i < m_portIndex; i++)
     {
         char tmp[3];
         PortHandle& ph = m_portPool.at(i);
-        sprintf(tmp, "%s%c", ph.portName, ph.statu);
-        strcat(out.c_str(), tmp);
+        sprintf(tmp, "%s%c", ph.portName.c_str(), ph.statu);
+        out.append(tmp);
     }
     char numbers[2];
     sprintf(numbers, "%02X", m_portIndex);
@@ -74,12 +75,12 @@ std::string vpsToolManager::getFreePortHandle()
 {
     std::string out;
     if( !m_portPool.empty() ){
-        for(int i = m_portPool.size(); i > m_portIndex; i--)
+        for(unsigned int i = m_portPool.size(); i > m_portIndex; i--)
         {
             char tmp[3];
             PortHandle& ph = m_portPool.at(i);
-            sprintf(tmp, "%s%c", ph.portName, ph.statu);
-            strcat(out.c_str(), tmp);
+            sprintf(tmp, "%s%c", ph.portName.c_str(), ph.statu);
+            out.append(tmp);
         }
         char numbers[2];
         sprintf(numbers, "%02X", (m_portPool.size() - m_portIndex));
@@ -91,7 +92,7 @@ std::string vpsToolManager::getFreePortHandle()
 
 bool vpsToolManager::initPortHandle(std::string &data)
 {
-    int i =0;
+    unsigned int i =0;
     for(; i< m_portIndex; i++)
     {
         PortHandle& ph = m_portPool.at(i);
@@ -107,14 +108,14 @@ bool vpsToolManager::initPortHandle(std::string &data)
 
 bool vpsToolManager::setTrackingPriority(std::__cxx11::string &port, char priority)
 {
-    int i =0;
+    unsigned int i =0;
     for(; i< m_portIndex; i++)
     {
         PortHandle& ph = m_portPool.at(i);
         if( ph.portName == port)
         {
             ph.statu = PORT_ENABLED;
-            ph.priority = priority;
+            ph.priority = (TrackingPriority)priority;
             return true;
         }
     }

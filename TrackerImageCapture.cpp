@@ -12,8 +12,8 @@ TrackerImageCapture::TrackerImageCapture()
 	: m_IsCapturing(false),
 	m_LeftCamera(NULL),
 	m_RightCamera(NULL),
-	m_Imagepool(NULL),
-	m_LightsController(NULL)
+    m_LightsController(NULL),
+    m_Imagepool(NULL)
 {
 
 }
@@ -138,7 +138,7 @@ bool TrackerImageCapture::initCameras()
 			stream.device()->seek(lengthPos);
 			stream << qint64(length);
 			emit errorOccured(errorMsg);
-			for (int j = 0; j <= i; ++j)
+            for (unsigned int j = 0; j <= i; ++j)
 			{
 				delete ppCameras[j];
 			}
@@ -155,7 +155,7 @@ bool TrackerImageCapture::initCameras()
 			stream.device()->seek(lengthPos);
 			stream << qint64(length);
 			emit errorOccured(errorMsg);
-			for (int j = 0; j <= i; ++j)
+            for (unsigned int j = 0; j <= i; ++j)
 			{
 				delete ppCameras[j];
 			}
@@ -173,7 +173,7 @@ bool TrackerImageCapture::initCameras()
 			stream.device()->seek(lengthPos);
 			stream << qint64(length);
 			emit errorOccured(errorMsg);
-			for (int j = 0; j <= i; ++j)
+            for (unsigned int j = 0; j <= i; ++j)
 			{
 				delete ppCameras[j];
 			}
@@ -200,7 +200,7 @@ bool TrackerImageCapture::initCameras()
 			stream.device()->seek(lengthPos);
 			stream << qint64(length);
 			emit errorOccured(errorMsg);
-			for (int j = 0; j <= i; ++j)
+            for (unsigned int j = 0; j <= i; ++j)
 			{
 				delete ppCameras[j];
 			}
@@ -214,7 +214,7 @@ bool TrackerImageCapture::initCameras()
 			stream.device()->seek(lengthPos);
 			stream << qint64(length);
 			emit errorOccured(errorMsg);
-			for (int j = 0; j <= i; ++j)
+            for (unsigned int j = 0; j <= i; ++j)
 			{
 				delete ppCameras[j];
 			}
@@ -241,7 +241,7 @@ bool TrackerImageCapture::initCameras()
 			stream.device()->seek(lengthPos);
 			stream << qint64(length);
 			emit errorOccured(errorMsg);
-			for (int j = 0; j <= i; ++j)
+            for (unsigned int j = 0; j <= i; ++j)
 			{
 				delete ppCameras[j];
 			}
@@ -257,7 +257,7 @@ bool TrackerImageCapture::initCameras()
 			stream.device()->seek(lengthPos);
 			stream << qint64(length);
 			emit errorOccured(errorMsg);
-			for (int j = 0; j <= i; ++j)
+            for (unsigned int j = 0; j <= i; ++j)
 			{
 				delete ppCameras[j];
 			}
@@ -274,7 +274,7 @@ bool TrackerImageCapture::initCameras()
 			stream.device()->seek(lengthPos);
 			stream << qint64(length);
 			emit errorOccured(errorMsg);
-			for (int j = 0; j <= i; ++j)
+            for (unsigned int j = 0; j <= i; ++j)
 			{
 				delete ppCameras[j];
 			}
@@ -303,7 +303,7 @@ bool TrackerImageCapture::initCameras()
 			stream.device()->seek(lengthPos);
 			stream << qint64(length);
 			emit errorOccured(errorMsg);
-			for (int j = 0; j <= i; ++j)
+            for (unsigned int j = 0; j <= i; ++j)
 			{
 				delete ppCameras[j];
 			}

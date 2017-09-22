@@ -34,7 +34,7 @@ class vpsToolManager
 {
 public:
     static vpsToolManager* getInstance();
-    PortHandle &getPortHandle();
+    std::__cxx11::string getPortHandle();
     void setPortHandle(std::string &port);
     std::__cxx11::string getOccupiedPortHandle();
     std::__cxx11::string getFreePortHandle();
@@ -46,7 +46,7 @@ private:
     ~vpsToolManager();
 
     std::vector<PortHandle>  m_portPool;
-    int m_portIndex;
+    unsigned int m_portIndex;
     static  vpsToolManager *m_Instance;
 };
 

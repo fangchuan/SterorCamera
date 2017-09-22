@@ -6,9 +6,9 @@
 SerialWorker::SerialWorker(QObject *parent):
     QSerialPort(parent),
     m_timer(new QTimer(this)),
-    m_interpreter(new SerialInterpreter),
     m_IsUploadingFile(false),
-    m_IsAppendingFile(false)
+    m_IsAppendingFile(false),
+    m_interpreter(new SerialInterpreter)
 
 {
     m_interpreter->setSerialPort(this);
@@ -142,7 +142,7 @@ bool SerialWorker::SetFlowControl(char flowControl)
 }
 
 
-void SerialWorker::readData(QByteArray &data)
+void SerialWorker::readData()
 {
     if (this->bytesAvailable())
     {
@@ -296,17 +296,18 @@ void SerialWorker::checkBusJam()
 
 }
 
-void SerialWorker::sendMessage(const QByteArray &msg)
+bool SerialWorker::sendMessage(const QByteArray &msg)
 {
     if(this->bytesToWrite() > 1024*1024){
         emit startTimer(20);
-        return ;
+        return false;
     }
 
     if(this->isOpen()){
         this->write(msg);
         this->flush();
+        return true;
     }else
-        return ;
+        return false;
 
 }

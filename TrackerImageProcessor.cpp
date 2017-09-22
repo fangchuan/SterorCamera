@@ -88,7 +88,7 @@ void getMarkerCenters2D(Image *p, MarkerCenters& centers)
 	cv::findContours(binImage, contours, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_NONE,
 		cv::Point(0, 0));
 
-	for (int i = 0; i < contours.size(); ++i)
+    for (unsigned int i = 0; i < contours.size(); ++i)
 	{
 		double area = cv::contourArea(contours.at(i));
 		double circum = cv::arcLength(contours.at(i), 1);
@@ -138,11 +138,11 @@ void getMarkerCenters2DHough(Image *p, MarkerCenters& centers)
 	cv::threshold(cvImage, binImage, IRCAM_THRES_BIN, 255, cv::THRESH_BINARY);
 	std::vector<cv::Vec3f> circles;
 	cv::HoughCircles(binImage, circles, CV_HOUGH_GRADIENT,
-		2,   // 累加器的分辨率(图像尺寸/2)
-		10,  // 两个圆之间的最小距离
-		200, // Canny中的高阈值
-		60, // 最小投票数
-		20, 100); // 有效半径的最小和最大值
+		2,
+		10, 
+		200, 
+		60, 
+		20, 100); 
 	int size = circles.size();
 	for (int i = 0; i < size; ++i)
 	{

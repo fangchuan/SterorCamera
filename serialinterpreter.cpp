@@ -3,9 +3,10 @@
 
 
 SerialInterpreter::SerialInterpreter(QObject* parent):QObject(parent),
+    m_commad(NULL),
     m_serialCommunication(NULL),
-    m_passiveTool(NULL),
-    m_commad("")
+    m_passiveTool(NULL)
+
 {
 
 }
@@ -18,45 +19,24 @@ SerialInterpreter::~SerialInterpreter()
 //
 //
 //
-bool SerialInterpreter::replay(int replayType, const std::string &data)
+bool SerialInterpreter::replay( const std::string &data)
 {
     if(m_serialCommunication == NULL)
         return false;
 
-    QByteArray fullReplay;
-
-    switch(replayType){
-    case REPLAY_BREAK:
-        m_crcValue = QByteArray(calcCRC(REPLAY_RESET).c_str());
-        fullReplay = QByteArray(REPLAY_RESET) + m_crcValue;
-        break;
-    case REPLAY_OPERATION:
-        m_crcValue = QByteArray(calcCRC(&data).c_str());
-        fullReplay = QByteArray(data.c_str()) + m_crcValue;
-        break;
-    case REPLAY_3D:
+//REPLAY_PHRQ:
+        //<PortHandle><CRC16><CR>
+        //  2bytes
+//REPLAY_PHSR:
+        //<Numbers of PortHandle><nth PortHandle><nth PortHandleStatus><CRC16><CR>
+        //            2bytes           2bytes           3bytes     
+//REPLAY_3D:
         //<MarkerNumber><LF><ReplayOptionData 5><CRC16><CR>
         //ReplyOptionData 5: <Txn><Tyn><Tzn><LineSeparation><OutOfVolume><LF>
         //Txn, Tyn, Tzn: 9 bytes each(a sign, 8 digits meaning xxxx.xxxx).
         //LineSeparation: 4 bytes(a sign, 3 digits meaning x.xx).
         //OutOfVolume: 1 byte. 0 for inside, and 1 for outside.
-        break;
-    case REPLAY_PHRQ:
-        //<PortHandle><CRC16><CR>
-        //  2bytes
-        m_crcValue = QByteArray(calcCRC(&data).c_str());
-        fullReplay = QByteArray(data.c_str()) + m_crcValue;
-        break;
-    case REPLAY_PHSR:
-        //<Numbers of PortHandle><nth PortHandle><nth PortHandleStatus><CRC16><CR>
-        //            2bytes           2bytes           3bytes
-
-        break;
-    case REPLAY_SFLIST:
-        m_crcValue = QByteArray(calcCRC(&data).c_str());
-        fullReplay = QByteArray(data.c_str()) + m_crcValue;
-        break;
-    case REPLAY_TX:
+//REPLAY_TX:
 //        <PortHandleNumber><PortHandle n><ReplyOptionData 0001>…<ReplyOptionData
 //        0008><LF><ReplyOptionData 1000><SystemStatus><CRC16><CR>
 //        PortHandleNumber: 2 bytes.
@@ -71,12 +51,10 @@ bool SerialInterpreter::replay(int replayType, const std::string &data)
 //        Or MISSING<PortStatus><FrameNumber>
 //        ReplyOptionData 0002 – 1000 could be null by default option.
 //        SystemStatus: 4 bytes.
-        break;
-    case REPLAY_ERROR:
-        m_crcValue = QByteArray(calcCRC(&data).c_str());
-        fullReplay = QByteArray(data.c_str()) + m_crcValue;
-        break;
-    }
+
+    QByteArray fullReplay;
+    m_crcValue = QByteArray(calcCRC(&data).c_str());
+    fullReplay = QByteArray(data.c_str()) + m_crcValue;
     fullReplay.append('\r');
 
 #ifdef USE_DEBUG
@@ -93,18 +71,31 @@ bool SerialInterpreter::replay(int replayType, const std::string &data)
 NDIErrorCode SerialInterpreter::cmdInterpreter(const QByteArray &data)
 {
     if(data.at(0) == '0' ){  //Reset the system, reset serial communication parameter
-        replay(REPLAY_BREAK);
+        replay(REPLAY_RESET);
         m_serialCommunication->setUpDefault();
         return NDIOKAY;
     }
 
     int colonPos = data.indexOf(':');
     int crPos = data.indexOf(CR);
-    if(colonPos > 0 && crPos > 0){
-        m_commad = data.left(colonPos - 1).toStdString();
+    if(colonPos > 0 && crPos > 0)
+    {
+        m_commad = data.left(colonPos - 1).data();
 
-        switch(m_commad){
-        case COMMAD_COMM: //set serial communication parameter
+        if(strcmp(m_commad, "APIREV:") == 0)
+        {
+            return NDIOKAY;
+        }
+        if(strcmp(m_commad, "PHINF:") == 0)
+        {
+            return NDIOKAY;
+        }
+//        if(strcmp(cmd, "PHF:") == 0)//Port Handle Free
+//        if(strcmp(cmd, "PDIS:") == 0)//Port disable
+//        if(strcmp(cmd, "IRATE:") == 0)//Setting the illuminator rate
+//        if(strcmp(cmd, "BEEP:") == 0)//Sounding the beeper
+        if(strcmp(m_commad, "COMM:") == 0)//Change Serial Communication Parameters
+        {
             //COMM:<Baudrate><Databits><Parity><Stopbits><HardwareHandShaking><CRC16>
             if(m_serialCommunication == NULL)
                 return SERIALINTERFACENOTSET;
@@ -113,152 +104,210 @@ NDIErrorCode SerialInterpreter::cmdInterpreter(const QByteArray &data)
                && m_serialCommunication->SetParity(data.at(colonPos+3))
                && m_serialCommunication->SetFlowControl(data.at(colonPos+4)) )
             {
-                replay(REPLAY_OPERATION, REPLAY_OKAY);
+                m_serialCommunication->OpenConnection();
+                if(replay( REPLAY_OKAY ))
+                    return NDIOKAY;
+                else
+                    return SERIALSENDERROR;
             }else
             {
-                m_serialMutex->unlock();
-                replay(REPLAY_OPERATION, ERROR_INCORRECT_NUMBER_OF_PARAMETERS);
+                if(replay( ERROR_INCORRECT_NUMBER_OF_PARAMETERS ))
+                    return NDIOKAY;
+                else
+                    return SERIALSENDERROR;
             }
-            break;
-        case COMMAD_INIT: //initialize serial port, beep, led
+        }
+        if(strcmp(m_commad, "INIT:") == 0)//Initialize the Measurement System
+        {
             //INIT:<CRC16><CR>
             //....systemInit()
             if(true){
-                replay(REPLAY_OPERATION, REPLAY_OKAY);
+                if(replay( REPLAY_OKAY ))
+                    return NDIOKAY;
+                else
+                    return SERIALSENDERROR;
             }else{
-                replay(REPLAY_OPERATION, ERROR_SYSTEM_NOT_INITIALIZED);//
+                if(replay( ERROR_SYSTEM_NOT_INITIALIZED ))//
+                    return NDIOKAY;
+                else
+                    return SERIALSENDERROR;
             }
-            break;
-        case COMMAD_APIREV:
-            break;
-        case COMMAD_PHRQ:// Port Handle Request. Will request a Port Handle for a wireless tool and return it
-            //PHRQ:*********1****
-            m_passiveTool = vpsToolManager::getInstance();
-            replay(REPLAY_PHRQ, m_passiveTool->getPortHandle());
-            break;
-        case COMMAD_3D: //Report 3D Positions of single markers
-            //3D:<PortHandle><ReplayOption><CRC16><CR>
-            //        2bytes      1byte: 1-4 for single marker  5 for upto 50 markers
-
-            break;
-        case COMMAD_BEEP:
-            break;
-        case COMMAD_BX:
-            break;
-        case COMMAD_DSTART://开启诊断模式  弃用
+        }
+        if(strcmp(m_commad, "DSTART:") == 0)//Start the Diagnostic Mode
+        {
             //DSTART:<ReplayOption><CRC16><CR>
-            //...do nothing
-            replay(REPLAY_OPERATION, REPLAY_OKAY);
             emit startDiagnosing();
-            break;
-        case COMMAD_DSTOP://
-            //...DO NOTHING
-            replay(REPLAY_OPERATION, REPLAY_OKAY);
+            if(replay( REPLAY_OKAY ))
+                return NDIOKAY;
+            else
+                return SERIALSENDERROR;
+        }
+        if(strcmp(m_commad, "DSTOP:") == 0)//Stop the Diagnostic Mode
+        {
             emit stopDiagnosing();
-            break;
-        case COMMAD_IRATE://设置红外灯板闪烁频率. 弃用
+            if(replay( REPLAY_OKAY ))
+                return NDIOKAY;
+            else
+                return SERIALSENDERROR;
+        }
+        if(strcmp(m_commad, "IRINIT:") == 0)//Initialize the System to Check for Infrared
+        {
             //IRATE:<IlluminatorRate><CRC16><CR>
             //           1 byte:0 for 20HZ, 1 for 30HZ, 2 for 60HZ
             //... do nothing
-            replay(REPLAY_OPERATION, REPLAY_OKAY);
-            break;
-        case COMMAD_IRINIT:  // Initialize the System to Check for Infrared
-            break;
-        case COMMAD_PDIS:
-            break;
-        case COMMAD_PENA://enable the reporting of transformation for a particular porthandle
-            //PENA:<PortHandle><TrackingPriority><CRC16><CR>
-            std::string port = data.mid((5, 2)).toStdString();
-            char priority = data.at(7);
-            if(m_passiveTool->setTrackingPriority(port, priority))
-            {
-                replay(REPLAY_OPERATION, REPLAY_OKAY);
-            }else{
-                replay(REPLAY_OPERATION, ERROR_INVALID_TRACKING_PRIORITY);//ERROR_PORT_NOT_INITIALZED, ERROR_INVALID_PORTHANDLE
-            }
-            break;
-        case COMMAD_PHF:
-            break;
-        case COMMAD_PHINF:
-            break;
-        case COMMAD_PHSR: // Port Handle Search. Will returned port handles
+            if(replay( REPLAY_OKAY ))
+                return NDIOKAY;
+            else
+                return SERIALSENDERROR;
+        }
+        if(strcmp(m_commad, "PHSR:") == 0)//Port Handle Search
+        {
             //PHSR:<ReplayOption><CRC16><CR>
             //ReplayOption: 2bytes : 01---报告空闲的端口   02---报告已被占用但是没有初始化的端口
             m_passiveTool = vpsToolManager::getInstance();
             char option = data.at(6);
             if(option == PHSR_REPORT_FREE_HANDLE){
-                replay(REPLAY_PHSR, m_passiveTool->getFreePortHandle());
+                if(replay( m_passiveTool->getFreePortHandle() ))
+                    return NDIOKAY;
+                else
+                    return SERIALSENDERROR;
             }
             if(option == PHSR_REPORT_OCCUPIED_PORT){
-                replay( REPLAY_PHSR, m_passiveTool->getOccupiedPortHandle() );
+                if(replay( m_passiveTool->getOccupiedPortHandle() ))
+                    return NDIOKAY;
+                else
+                    return SERIALSENDERROR;
             }else{
-                replay( REPLAY_ERROR, ERROR_INVALID_COMMAND );
+                if(replay( ERROR_INVALID_COMMAND ))
+                    return NDIOKAY;
+                else
+                    return SERIALSENDERROR;
             }
-            break;
-        case COMMAD_PINIT://Initialize a port handle
-            //PINIT:<PortHandle><CRC16><CR>
-            if(m_passiveTool->initPortHandle(data.mid(6, 2).toStdString()))
-            {
-                replay(REPLAY_OPERATION, REPLAY_OKAY);
-            }else
-            {
-                replay(REPLAY_OPERATION, ERROR_INITIALIZATION_FAILED);
-            }
-            break;
-        case COMMAD_PVWR://Assign a definition file to a tool
+        }
+        if(strcmp(m_commad, "PHRQ:") == 0)//Port Handle Request
+        {
+            //PHRQ:*********1****
+            m_passiveTool = vpsToolManager::getInstance();
+            if(replay( m_passiveTool->getPortHandle() ))
+                return NDIOKAY;
+            else
+                return SERIALSENDERROR;
+        }
+        if(strcmp(m_commad, "PVWR:") == 0)//Port Virtual Write. Writes an SROM Image data to a tool
+        {
             //PVWR:<PortHandle><StartAddress><FileData><CRC16><CR>
             //         2bytes        4bytes     128bytes
             if( m_serialCommunication->handleUploadFile(data.mid(5)))
             {
-                replay(REPLAY_OPERATION, REPLAY_OKAY);
+                if(replay( REPLAY_OKAY ))
+                    return NDIOKAY;
+                else
+                    return SERIALSENDERROR;
             }
             else
             {
-                replay(REPLAY_OPERATION, ERROR_FAILURE_TO_WRITESROM);
+                if(replay( ERROR_FAILURE_TO_WRITESROM ))
+                    return NDIOKAY;
+                else
+                    return SERIALSENDERROR;
             }
-
-            break;
-        case COMMAD_SFLIST://查询trackDevice特征
+        }
+        if(strcmp(m_commad, "PINIT:") == 0)//Port Initialize
+        {
+            //PINIT:<PortHandle><CRC16><CR>
+            std::string ph = data.mid(6, 2).toStdString();
+            if(m_passiveTool->initPortHandle(ph))
+            {
+                if(replay( REPLAY_OKAY))
+                    return NDIOKAY;
+                else
+                    return SERIALSENDERROR;
+            }else
+            {
+                if(replay( ERROR_INITIALIZATION_FAILED))
+                    return NDIOKAY;
+                else
+                    return SERIALSENDERROR;
+            }
+        }
+        if(strcmp(m_commad, "PENA:") == 0)//Port Enable.enable a port that has been initialized with PINIT
+        {
+            //PENA:<PortHandle><TrackingPriority><CRC16><CR>
+            std::string port( data.mid((5, 2)).toStdString());
+            char priority = data.at(7);
+            if(m_passiveTool->setTrackingPriority(port, priority))
+            {
+                if(replay( REPLAY_OKAY))
+                    return NDIOKAY;
+                else
+                    return SERIALSENDERROR;
+            }else{
+                if(replay( ERROR_INVALID_TRACKING_PRIORITY))//ERROR_PORT_NOT_INITIALZED, ERROR_INVALID_PORTHANDLE
+                    return NDIOKAY;
+                else
+                    return SERIALSENDERROR;
+            }
+        }
+        if(strcmp(m_commad, "SFLIST:") == 0)//查询trackDevice特征
+        {
             //SFLIST:<ReplayOption><CRC16><CR>
             //00: 所有支持的特征值概要
             //01: 活动状态的tool port个数
             //02: wireless tool port个数
             //03: 所有的支持视场的参数
-            std::string replay03 = DeviceDataPolarisSpectra.HardwareCode + std::string(LF);
-            replay(REPLAY_SFLIST, replay03);
-            break;
-        case COMMAD_TSTART://开始跟踪
-            //...
-            replay(REPLAY_OPERATION, REPLAY_OKAY);
-            emit startTracking();
-            break;
-        case COMMAD_TSTOP://停止跟踪
-            //...
-            replay(REPLAY_OPERATION, REPLAY_OKAY);
-            emit stopTracking();
-            break;
-        case COMMAD_TX:
-//TX:<ReplyOption><CRC16><CR>
-//ReplyOption: Optional. 4 bytes.
-//0001 for transformation data by default,
-//0002 for tool and marker information,
-//0004 for 3D position of a single stray active marker,
-//0008 for 3D positions of markers on tools,
-//0800 for transformations not normally reported, and
-//1000 for 3D positions of stray passive markers.
-            break;
-        case COMMAD_VSEL://设置测量视场体积
-            //VSEL:<VolumeNumber><CRC16><CR>
-            replay(REPLAY_OPERATION, REPLAY_OKAY);
-            break;
-        default:
-            replay(REPLAY_ERROR, ERROR_INVALID_COMMAND); //01 represent for invalid command
-            return NDIINVALIDCOMMAND;
+            std::string replay03 =
+                    "5-240000-153200-095000+057200+039800+056946+024303+029773+999999+99999924\n";
+            if(replay( replay03))
+                return NDIOKAY;
+            else
+                return SERIALSENDERROR;
         }
-    }else{
-        return NDICOMMANDTOOSHORT;
-    }
+        if(strcmp(m_commad, "TSTART:") == 0)//Start Tracking Mode
+        {
+            emit startTracking();
+            if(replay( REPLAY_OKAY))
+                return NDIOKAY;
+            else
+                return SERIALSENDERROR;
 
+        }
+        if(strcmp(m_commad, "TSTOP:") == 0)//Stop Tracking Mode
+        {
+            emit stopTracking();
+            if(replay( REPLAY_OKAY))
+                return NDIOKAY;
+            else
+                return SERIALSENDERROR;
+
+        }
+        if(strcmp(m_commad, "TX:") == 0)//Report transformations in text mode
+        {
+            //TX:<ReplyOption><CRC16><CR>
+            //ReplyOption: Optional. 4 bytes.
+            //0001 for transformation data by default,
+            //0002 for tool and marker information,
+            //0004 for 3D position of a single stray active marker,
+            //0008 for 3D positions of markers on tools,
+            //0800 for transformations not normally reported, and
+            //1000 for 3D positions of stray passive markers.
+        }
+        if(strcmp(m_commad, "3D:") == 0)
+        {
+            //3D:<PortHandle><ReplayOption><CRC16><CR>
+            //        2bytes      1byte: 1-4 for single marker  5 for upto 50 markers
+        }
+        if(strcmp(m_commad, "VSEL:") == 0)//设置测量视场体积
+        {
+            //VSEL:<VolumeNumber><CRC16><CR>
+            if(replay( REPLAY_OKAY))
+                return NDIOKAY;
+            else
+                return SERIALSENDERROR;
+        }
+
+        replay( ERROR_INVALID_COMMAND); //01 represent for invalid command
+        return NDIINVALIDCOMMAND;
+    }
 }
 
 //
@@ -266,8 +315,13 @@ NDIErrorCode SerialInterpreter::cmdInterpreter(const QByteArray &data)
 //
 bool SerialInterpreter::setSerialPort(SerialWorker *serial)
 {
-    QMutexLocker lock(m_serialMutex);
-    m_serialCommunication = serial;
+    if(serial != NULL)
+    {
+        m_serialCommunication = serial;
+        return true;
+    }
+    else
+        return false;
 }
 
 //
