@@ -18,7 +18,7 @@ TrackerServer::TrackerServer(QObject *parent)
     m_Capture->moveToThread(imgThread);
     m_Processor->moveToThread(imgThread);
 
-    connect(m_serial, &SerialWorker::closed, serialThread, &QThread::quit);
+    connect(m_serial, &SerialWorker::serialWorkerStop, serialThread, &QThread::quit);
     connect(serialThread, &QThread::started, m_serial, &SerialWorker::setUpDefault);
     connect(serialThread, &QThread::finished,  m_serial, &SerialWorker::deleteLater);
     connect(serialThread, &QThread::finished, serialThread, &QThread::deleteLater);
@@ -46,7 +46,7 @@ TrackerServer::TrackerServer(QObject *parent)
     connect(m_serial, SIGNAL(stopDiagnosing()), m_Processor, SLOT(stopDiagnosing()));*/
     connect(m_serial, SIGNAL(busJam()), m_Processor, SLOT(busJam()), Qt::DirectConnection);
     connect(m_serial, SIGNAL(busIdle()), m_Processor, SLOT(busIdle()), Qt::DirectConnection);
-    connect(m_Processor, SIGNAL(result(const QByteArray&)), m_serial, SLOT(sendMessage(const QByteArray&)), Qt::DirectConnection);
+    connect(m_Processor, SIGNAL(result(const QByteArray&)), m_serial, SLOT(sendPosData(QByteArray)), Qt::DirectConnection);
 
     serialThread->start(QThread::TimeCriticalPriority);
     imgThread->start(QThread::HighPriority);
