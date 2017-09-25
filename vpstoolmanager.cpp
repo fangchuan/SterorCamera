@@ -12,7 +12,7 @@ vpsToolManager::vpsToolManager()
     char  portData[2];
     int i = 0;
     for (; i < MAX_TOOL; i ++){
-        sprintf(portData, "%02X", i);
+        sprintf(portData, "%02d", i);
         std::string pd(portData);
         setPortHandle(pd);
     }
@@ -64,11 +64,11 @@ std::string vpsToolManager::getOccupiedPortHandle()
     {
         char tmp[3];
         PortHandle& ph = m_portPool.at(i);
-        sprintf(tmp, "%s%c", ph.portName.c_str(), ph.statu);
+        sprintf(tmp, "%s%03d", ph.portName.c_str(), ph.statu);
         out.append(tmp);
     }
     char numbers[2];
-    sprintf(numbers, "%02X", m_portIndex);
+    sprintf(numbers, "%02d", m_portIndex);
     out.insert(0, numbers);
     return out;
 }
@@ -77,15 +77,15 @@ std::string vpsToolManager::getFreePortHandle()
 {
     std::string out;
     if( !m_portPool.empty() ){
-        for(unsigned int i = m_portPool.size(); i > m_portIndex; i--)
+        for(unsigned int i = m_portPool.size()-1; i >= m_portIndex; i--)
         {
             char tmp[3];
             PortHandle& ph = m_portPool.at(i);
-            sprintf(tmp, "%s%c", ph.portName.c_str(), ph.statu);
+            sprintf(tmp, "%s%03d", ph.portName.c_str(), ph.statu);
             out.append(tmp);
         }
         char numbers[2];
-        sprintf(numbers, "%02X", (m_portPool.size() - m_portIndex));
+        sprintf(numbers, "%02d", (m_portPool.size() - m_portIndex));
         out.insert(0, numbers);
     }
 
