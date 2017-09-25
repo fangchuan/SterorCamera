@@ -62,6 +62,7 @@ public:
     ~SerialInterpreter();
 
     bool setSerialPort(QSerialPort *serial);
+    void replaySerialBreak(int signo);
     const std::string calcCRC(const std::string* input);
     bool replay(const std::__cxx11::string &data );
     NDIErrorCode cmdInterpreter(const QByteArray &data);

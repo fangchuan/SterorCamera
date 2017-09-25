@@ -1,6 +1,7 @@
 #include "includes.h"
 #include <QDebug>
 #include <QFile>
+#include <signal.h>
 
 SerialInterpreter::SerialInterpreter(QObject* parent):QObject(parent),
     m_IsAppendingFile(false),
@@ -37,7 +38,10 @@ int SerialInterpreter::OpenConnection()
 
 int SerialInterpreter::CloseConnection()
 {
-    m_serialCommunication->close();
+    if(m_serialCommunication->isOpen())
+    {
+        m_serialCommunication->close();
+    }
 #ifdef USE_DEBUG
     qDebug() << "close serial port...";
 #endif
@@ -174,6 +178,27 @@ bool SerialInterpreter::saveFile()
     }else
         return false;
 }
+
+void SerialInterpreter::replaySerialBreak(int signo)
+{
+    //Reset the system, reset serial communication parameter
+    if( signo == SIGINT){
+#ifdef USE_DEBUG
+    qDebug() << "Reset the system";
+#endif
+        CloseConnection();
+
+        SetBaudRate('0');
+        SetDataBits('0');
+        SetParity('0');
+        SetFlowControl('0');
+
+        OpenConnection();
+
+        replay(REPLAY_RESET);
+    }
+
+}
 //
 //
 //
@@ -228,39 +253,27 @@ bool SerialInterpreter::replay( const std::string &data)
 //
 NDIErrorCode SerialInterpreter::cmdInterpreter(const QByteArray &data)
 {
-    if(data.at(0) == '0' ){  //Reset the system, reset serial communication parameter
-        CloseConnection();
-
-        SetBaudRate('0');
-        SetDataBits('0');
-        SetParity('0');
-        SetFlowControl('0');
-
-        OpenConnection();
-
-        replay(REPLAY_RESET);
-        return NDIOKAY;
-    }
 
     int colonPos = data.indexOf(':');
     int crPos = data.indexOf(LF);
     if(colonPos > 0 && crPos > 0)
     {
-        m_commad = data.left(colonPos - 1).data();
+        m_commad = data.left(colonPos).data();
+        qDebug() << QByteArray(m_commad);
 
-        if(strcmp(m_commad, "APIREV:") == 0)
+        if(strcmp(m_commad, "APIREV") == 0)
         {
             return NDIOKAY;
         }
-        if(strcmp(m_commad, "PHINF:") == 0)
+        if(strcmp(m_commad, "PHINF") == 0)
         {
             return NDIOKAY;
         }
-//        if(strcmp(cmd, "PHF:") == 0)//Port Handle Free
-//        if(strcmp(cmd, "PDIS:") == 0)//Port disable
-//        if(strcmp(cmd, "IRATE:") == 0)//Setting the illuminator rate
-//        if(strcmp(cmd, "BEEP:") == 0)//Sounding the beeper
-        if(strcmp(m_commad, "COMM:") == 0)//Change Serial Communication Parameters
+//        if(strcmp(cmd, "PHF") == 0)//Port Handle Free
+//        if(strcmp(cmd, "PDIS") == 0)//Port disable
+//        if(strcmp(cmd, "IRATE") == 0)//Setting the illuminator rate
+//        if(strcmp(cmd, "BEEP") == 0)//Sounding the beeper
+        if(strcmp(m_commad, "COMM") == 0)//Change Serial Communication Parameters
         {
             //COMM:<Baudrate><Databits><Parity><Stopbits><HardwareHandShaking><CRC16>
             if(m_serialCommunication == NULL)
@@ -285,7 +298,7 @@ NDIErrorCode SerialInterpreter::cmdInterpreter(const QByteArray &data)
                     return SERIALSENDERROR;
             }
         }
-        if(strcmp(m_commad, "INIT:") == 0)//Initialize the Measurement System
+        if(strcmp(m_commad, "INIT") == 0)//Initialize the Measurement System
         {
             //INIT:<CRC16><CR>
             //....systemInit()
@@ -301,7 +314,7 @@ NDIErrorCode SerialInterpreter::cmdInterpreter(const QByteArray &data)
                     return SERIALSENDERROR;
             }
         }
-        if(strcmp(m_commad, "DSTART:") == 0)//Start the Diagnostic Mode
+        if(strcmp(m_commad, "DSTART") == 0)//Start the Diagnostic Mode
         {
             //DSTART:<ReplayOption><CRC16><CR>
             emit startDiagnosing();
@@ -310,7 +323,7 @@ NDIErrorCode SerialInterpreter::cmdInterpreter(const QByteArray &data)
             else
                 return SERIALSENDERROR;
         }
-        if(strcmp(m_commad, "DSTOP:") == 0)//Stop the Diagnostic Mode
+        if(strcmp(m_commad, "DSTOP") == 0)//Stop the Diagnostic Mode
         {
             emit stopDiagnosing();
             if(replay( REPLAY_OKAY ))
@@ -318,7 +331,7 @@ NDIErrorCode SerialInterpreter::cmdInterpreter(const QByteArray &data)
             else
                 return SERIALSENDERROR;
         }
-        if(strcmp(m_commad, "IRINIT:") == 0)//Initialize the System to Check for Infrared
+        if(strcmp(m_commad, "IRINIT") == 0)//Initialize the System to Check for Infrared
         {
             //IRATE:<IlluminatorRate><CRC16><CR>
             //           1 byte:0 for 20HZ, 1 for 30HZ, 2 for 60HZ
@@ -328,7 +341,7 @@ NDIErrorCode SerialInterpreter::cmdInterpreter(const QByteArray &data)
             else
                 return SERIALSENDERROR;
         }
-        if(strcmp(m_commad, "PHSR:") == 0)//Port Handle Search
+        if(strcmp(m_commad, "PHSR") == 0)//Port Handle Search
         {
             //PHSR:<ReplayOption><CRC16><CR>
             //ReplayOption: 2bytes : 01---报告空闲的端口   02---报告已被占用但是没有初始化的端口
@@ -352,7 +365,7 @@ NDIErrorCode SerialInterpreter::cmdInterpreter(const QByteArray &data)
                     return SERIALSENDERROR;
             }
         }
-        if(strcmp(m_commad, "PHRQ:") == 0)//Port Handle Request
+        if(strcmp(m_commad, "PHRQ") == 0)//Port Handle Request
         {
             //PHRQ:*********1****
             m_passiveTool = vpsToolManager::getInstance();
@@ -361,7 +374,7 @@ NDIErrorCode SerialInterpreter::cmdInterpreter(const QByteArray &data)
             else
                 return SERIALSENDERROR;
         }
-        if(strcmp(m_commad, "PVWR:") == 0)//Port Virtual Write. Writes an SROM Image data to a tool
+        if(strcmp(m_commad, "PVWR") == 0)//Port Virtual Write. Writes an SROM Image data to a tool
         {
             //PVWR:<PortHandle><StartAddress><FileData><CRC16><CR>
             //         2bytes        4bytes     128bytes
@@ -380,7 +393,7 @@ NDIErrorCode SerialInterpreter::cmdInterpreter(const QByteArray &data)
                     return SERIALSENDERROR;
             }
         }
-        if(strcmp(m_commad, "PINIT:") == 0)//Port Initialize
+        if(strcmp(m_commad, "PINIT") == 0)//Port Initialize
         {
             //PINIT:<PortHandle><CRC16><CR>
             std::string ph = data.mid(6, 2).toStdString();
@@ -398,7 +411,7 @@ NDIErrorCode SerialInterpreter::cmdInterpreter(const QByteArray &data)
                     return SERIALSENDERROR;
             }
         }
-        if(strcmp(m_commad, "PENA:") == 0)//Port Enable.enable a port that has been initialized with PINIT
+        if(strcmp(m_commad, "PENA") == 0)//Port Enable.enable a port that has been initialized with PINIT
         {
             //PENA:<PortHandle><TrackingPriority><CRC16><CR>
             std::string port;
@@ -417,7 +430,7 @@ NDIErrorCode SerialInterpreter::cmdInterpreter(const QByteArray &data)
                     return SERIALSENDERROR;
             }
         }
-        if(strcmp(m_commad, "SFLIST:") == 0)//查询trackDevice特征
+        if(strcmp(m_commad, "SFLIST") == 0)//查询trackDevice特征
         {
             //SFLIST:<ReplayOption><CRC16><CR>
             //00: 所有支持的特征值概要
@@ -431,7 +444,7 @@ NDIErrorCode SerialInterpreter::cmdInterpreter(const QByteArray &data)
             else
                 return SERIALSENDERROR;
         }
-        if(strcmp(m_commad, "TSTART:") == 0)//Start Tracking Mode
+        if(strcmp(m_commad, "TSTART") == 0)//Start Tracking Mode
         {
             emit startTracking();
             if(replay( REPLAY_OKAY))
@@ -440,7 +453,7 @@ NDIErrorCode SerialInterpreter::cmdInterpreter(const QByteArray &data)
                 return SERIALSENDERROR;
 
         }
-        if(strcmp(m_commad, "TSTOP:") == 0)//Stop Tracking Mode
+        if(strcmp(m_commad, "TSTOP") == 0)//Stop Tracking Mode
         {
             emit stopTracking();
             if(replay( REPLAY_OKAY))
@@ -449,7 +462,7 @@ NDIErrorCode SerialInterpreter::cmdInterpreter(const QByteArray &data)
                 return SERIALSENDERROR;
 
         }
-        if(strcmp(m_commad, "TX:") == 0)//Report transformations in text mode
+        if(strcmp(m_commad, "TX") == 0)//Report transformations in text mode
         {
             //TX:<ReplyOption><CRC16><CR>
             //ReplyOption: Optional. 4 bytes.
@@ -460,12 +473,12 @@ NDIErrorCode SerialInterpreter::cmdInterpreter(const QByteArray &data)
             //0800 for transformations not normally reported, and
             //1000 for 3D positions of stray passive markers.
         }
-        if(strcmp(m_commad, "3D:") == 0)
+        if(strcmp(m_commad, "3D") == 0)
         {
             //3D:<PortHandle><ReplayOption><CRC16><CR>
             //        2bytes      1byte: 1-4 for single marker  5 for upto 50 markers
         }
-        if(strcmp(m_commad, "VSEL:") == 0)//设置测量视场体积
+        if(strcmp(m_commad, "VSEL") == 0)//设置测量视场体积
         {
             //VSEL:<VolumeNumber><CRC16><CR>
             if(replay( REPLAY_OKAY))
