@@ -2,7 +2,7 @@
 #define SERIALINTERPRETER_H
 
 #include <QObject>
-#include "serialworker.h"
+#include <QSerialPort>
 #include "trackingtypes.h"
 #include "vpstoolmanager.h"
 #include <string>
@@ -51,7 +51,6 @@
 #define PHSR_REPORT_FREE_HANDLE '1'
 #define PHSR_REPORT_OCCUPIED_PORT '2'
 
-class SerialWorker;
 
 
 
@@ -62,10 +61,21 @@ public:
     SerialInterpreter(QObject* parent = NULL);
     ~SerialInterpreter();
 
-    bool setSerialPort(SerialWorker *serial);
+    bool setSerialPort(QSerialPort *serial);
     const std::string calcCRC(const std::string* input);
     bool replay(const std::__cxx11::string &data );
     NDIErrorCode cmdInterpreter(const QByteArray &data);
+private:
+    int OpenConnection();
+    int CloseConnection();
+    void SetDeviceName(QString &portName);
+    bool SetBaudRate(char baudRate);
+    bool SetDataBits(char dataBits);
+    bool SetParity(char parity);
+    bool SetStopBits(char stopBits);
+    bool SetFlowControl(char flowControl);
+    bool handleUploadFile(const QByteArray& data);
+    bool saveFile();
 
 signals:
     void startTracking();
@@ -73,9 +83,12 @@ signals:
     void startDiagnosing();
     void stopDiagnosing();
 private:
+    bool m_IsAppendingFile;
+    QString m_Filename;
+    QByteArray m_FileData;
     QByteArray m_crcValue;
     char *m_commad;
-    SerialWorker *m_serialCommunication;
+    QSerialPort *m_serialCommunication;
     vpsToolManager *m_passiveTool;
 
 };

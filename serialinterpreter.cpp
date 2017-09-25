@@ -1,8 +1,9 @@
 #include "includes.h"
 #include <QDebug>
-
+#include <QFile>
 
 SerialInterpreter::SerialInterpreter(QObject* parent):QObject(parent),
+    m_IsAppendingFile(false),
     m_commad(NULL),
     m_serialCommunication(NULL),
     m_passiveTool(NULL)
@@ -13,9 +14,166 @@ SerialInterpreter::SerialInterpreter(QObject* parent):QObject(parent),
 
 SerialInterpreter::~SerialInterpreter()
 {
+    if(m_commad)
+        delete m_commad;
 
+    m_passiveTool->deconstructor();
 }
 
+int SerialInterpreter::OpenConnection()
+{
+    if(m_serialCommunication->open(QIODevice::ReadWrite)){
+#ifdef USE_DEBUG
+        qDebug()<<"open serial port successfully...";
+#endif
+        return 0;
+    }else{
+#ifdef USE_DEBUG
+        qDebug()<<"open serial port fail...";
+#endif
+        return -1;
+    }
+}
+
+int SerialInterpreter::CloseConnection()
+{
+    m_serialCommunication->close();
+#ifdef USE_DEBUG
+    qDebug() << "close serial port...";
+#endif
+    return 0;
+}
+
+void SerialInterpreter::SetDeviceName(QString &portName)
+{
+    m_serialCommunication->setPortName(portName);
+}
+
+bool SerialInterpreter::SetBaudRate(char baudRate)
+{
+    QSerialPort::BaudRate rate;
+    switch(baudRate){
+    case '1':
+        rate = QSerialPort::BaudRate::Baud4800;
+        break;
+    case '2':
+        rate = QSerialPort::BaudRate::Baud19200;
+        break;
+    case '3':
+        rate = QSerialPort::BaudRate::Baud38400;
+        break;
+    case '4':
+        rate = QSerialPort::BaudRate::Baud57600;
+        break;
+    case '5':
+        rate = QSerialPort::BaudRate::Baud115200;
+        break;
+    default:
+        rate = QSerialPort::BaudRate::Baud9600;
+        break;
+    }
+    return  m_serialCommunication->setBaudRate(rate);
+}
+
+bool SerialInterpreter::SetDataBits(char dataBits)
+{
+    QSerialPort::DataBits bits;
+    switch(dataBits){
+    case '1':
+        bits = QSerialPort::DataBits::Data7;
+        break;
+    default :
+        bits = QSerialPort::DataBits::Data8;
+        break;
+    }
+    return m_serialCommunication->setDataBits(bits);
+}
+
+bool SerialInterpreter::SetParity(char parity)
+{
+    QSerialPort::Parity p;
+    switch (parity) {
+    case '1':
+        p = QSerialPort::Parity::OddParity;
+        break;
+    case '2':
+        p = QSerialPort::Parity::EvenParity;
+        break;
+    default:
+        p = QSerialPort::Parity::NoParity;
+        break;
+    }
+    return m_serialCommunication->setParity(p);
+}
+
+bool SerialInterpreter::SetStopBits(char stopBits)
+{
+    QSerialPort::StopBits bits;
+    switch(stopBits){
+    case '1':
+        bits = QSerialPort::StopBits::TwoStop;
+        break;
+    default :
+        bits = QSerialPort::StopBits::OneStop;
+        break;
+    }
+   return m_serialCommunication->setStopBits(bits);
+}
+
+bool SerialInterpreter::SetFlowControl(char flowControl)
+{
+    QSerialPort::FlowControl fc;
+    switch (flowControl) {
+    case '1':
+        fc = QSerialPort::FlowControl::HardwareControl;
+        break;
+    default:
+        fc = QSerialPort::FlowControl::NoFlowControl;
+        break;
+    }
+    return m_serialCommunication->setFlowControl(fc);
+}
+
+bool  SerialInterpreter::handleUploadFile(const QByteArray& data)
+{
+    // PortHandle(2bytes) | StartAddress(4bytes) | FILE_DATA(128bytes)
+    m_Filename = data.left(2);
+    int sequence;
+    sequence = data.mid(2,4).toInt();
+
+    if (m_IsAppendingFile){
+
+        m_FileData += data.mid(4, 128);
+
+    }else{
+        if(sequence > 0)
+            m_IsAppendingFile = true;
+
+        m_FileData = data.mid(4, 128);
+    }
+
+    if(m_FileData.endsWith(QByteArray("0000")))//后补0结尾的说明dataLength<128
+    {
+        if(!saveFile())
+            return false;
+
+        m_IsAppendingFile = false;
+    }
+    // check crc value
+    return true;
+}
+
+bool SerialInterpreter::saveFile()
+{
+    QFile file(m_Filename);
+    if(file.open(QIODevice::WriteOnly) == true){
+        qint64 counts = file.write(m_FileData);
+        if(counts < 0)
+            return false;
+        file.close();
+    }else
+        return false;
+}
 //
 //
 //
@@ -61,23 +219,31 @@ bool SerialInterpreter::replay( const std::string &data)
     qDebug() << fullReplay;
 #endif
 
-    bool ret = m_serialCommunication->sendMessage(fullReplay);
+    m_serialCommunication->write(fullReplay);
+    bool ret = m_serialCommunication->flush();
     return ret;
 }
-
 //
 //
 //
 NDIErrorCode SerialInterpreter::cmdInterpreter(const QByteArray &data)
 {
     if(data.at(0) == '0' ){  //Reset the system, reset serial communication parameter
+        CloseConnection();
+
+        SetBaudRate('0');
+        SetDataBits('0');
+        SetParity('0');
+        SetFlowControl('0');
+
+        OpenConnection();
+
         replay(REPLAY_RESET);
-        m_serialCommunication->setUpDefault();
         return NDIOKAY;
     }
 
     int colonPos = data.indexOf(':');
-    int crPos = data.indexOf(CR);
+    int crPos = data.indexOf(LF);
     if(colonPos > 0 && crPos > 0)
     {
         m_commad = data.left(colonPos - 1).data();
@@ -99,14 +265,14 @@ NDIErrorCode SerialInterpreter::cmdInterpreter(const QByteArray &data)
             //COMM:<Baudrate><Databits><Parity><Stopbits><HardwareHandShaking><CRC16>
             if(m_serialCommunication == NULL)
                 return SERIALINTERFACENOTSET;
-            m_serialCommunication->CloseConnection();
+            CloseConnection();
 
-            if(m_serialCommunication->SetBaudRate(data.at(colonPos+1))
-               && m_serialCommunication->SetDataBits(data.at(colonPos+2))
-               && m_serialCommunication->SetParity(data.at(colonPos+3))
-               && m_serialCommunication->SetFlowControl(data.at(colonPos+4)) )
+            if(SetBaudRate(data.at(colonPos+1))
+               && SetDataBits(data.at(colonPos+2))
+               && SetParity(data.at(colonPos+3))
+               && SetFlowControl(data.at(colonPos+4)) )
             {
-                m_serialCommunication->OpenConnection();
+                OpenConnection();
                 if(replay( REPLAY_OKAY ))
                     return NDIOKAY;
                 else
@@ -199,7 +365,7 @@ NDIErrorCode SerialInterpreter::cmdInterpreter(const QByteArray &data)
         {
             //PVWR:<PortHandle><StartAddress><FileData><CRC16><CR>
             //         2bytes        4bytes     128bytes
-            if( m_serialCommunication->handleUploadFile(data.mid(5)))
+            if( handleUploadFile(data.mid(5)))
             {
                 if(replay( REPLAY_OKAY ))
                     return NDIOKAY;
@@ -235,7 +401,8 @@ NDIErrorCode SerialInterpreter::cmdInterpreter(const QByteArray &data)
         if(strcmp(m_commad, "PENA:") == 0)//Port Enable.enable a port that has been initialized with PINIT
         {
             //PENA:<PortHandle><TrackingPriority><CRC16><CR>
-            std::string port( data.mid((5, 2)).toStdString());
+            std::string port;
+            port = data.mid((5, 2)).toStdString();
             char priority = data.at(7);
             if(m_passiveTool->setTrackingPriority(port, priority))
             {
@@ -315,7 +482,7 @@ NDIErrorCode SerialInterpreter::cmdInterpreter(const QByteArray &data)
 //
 //
 //
-bool SerialInterpreter::setSerialPort(SerialWorker *serial)
+bool SerialInterpreter::setSerialPort(QSerialPort *serial)
 {
     if(serial != NULL)
     {
