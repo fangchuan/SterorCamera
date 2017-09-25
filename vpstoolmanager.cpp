@@ -18,9 +18,11 @@ vpsToolManager::vpsToolManager()
     }
 }
 
-vpsToolManager::~vpsToolManager()
+void vpsToolManager::deconstructor()
 {
     m_portPool.clear();
+    if(m_Instance)
+        delete m_Instance;
 }
 
 

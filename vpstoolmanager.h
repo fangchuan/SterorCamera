@@ -41,9 +41,10 @@ public:
     bool initPortHandle(std::string& data);
     bool setTrackingPriority(std::string& port, char priority);
     char getTrackingPriority(std::string& port);
+
+    void deconstructor();
 private:
     vpsToolManager();
-    ~vpsToolManager();
 
     std::vector<PortHandle>  m_portPool;
     unsigned int m_portIndex;
