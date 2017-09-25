@@ -1,4 +1,5 @@
 #include "includes.h"
+#include <signal.h>
 #include <QDebug>
 
 SerialWorker::SerialWorker(QObject *parent):
@@ -20,6 +21,9 @@ SerialWorker::SerialWorker(QObject *parent):
 
     connect(m_interpreter, SIGNAL(startTracking()), this, SIGNAL(startTracking()));
     connect(m_interpreter, SIGNAL(stopTracking()), this, SIGNAL(stopTracking()));
+
+    if (signal(SIGINT, m_interpreter->replaySerialBreak) == SIG_ERR)
+        qDebug() << "cant catch SIGINT";
 }
 
 SerialWorker::~SerialWorker()
@@ -30,12 +34,15 @@ SerialWorker::~SerialWorker()
 
 void SerialWorker::readData()
 {
-        QByteArray data = m_serialPort->readLine(256);
+
+    if( m_serialPort->canReadLine() ){
+        QByteArray data = m_serialPort->readLine();
 #ifdef USE_DEBUG
         qDebug() << "read data from serialport...";
         qDebug() << data;
 #endif
         m_interpreter->cmdInterpreter(data);
+    }
 
 //        switch(TrackerMessageTranslator::translate(data))
 //        {
