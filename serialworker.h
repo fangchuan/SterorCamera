@@ -6,7 +6,7 @@
 
 class SerialInterpreter;
 
-class SerialWorker : public QSerialPort
+class SerialWorker : public QObject
 {
     Q_OBJECT
 public:
@@ -35,29 +35,22 @@ signals:
     void manufacting();
     void startTimer(int time);
     void stopTimer();
-    void closed();
+    void serialWorkerStop();
 public slots:
     bool setUpDefault();
-    void closeSerialPort();
     void readData();
     void handleError(const QByteArray& error);
-    bool sendMessage(const QByteArray& msg);
-    bool handleUploadFile(const QByteArray& data);
+    bool sendPosData(const QByteArray& msg);
+
 private slots:
     void checkBusJam();
     void handleFatalError(QSerialPort::SerialPortError error);
 
-    bool saveFile();
 private:
 
     QTimer *m_timer;
-    bool m_IsUploadingFile;
-    bool m_IsAppendingFile;
-    QString m_Filename;
-    QByteArray m_FileData;
-    qint64 m_FileLength;
     SerialInterpreter* m_interpreter;
-
+    QSerialPort *m_serialPort;
 };
 
 #endif // SERIALWORKER_H
