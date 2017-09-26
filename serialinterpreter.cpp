@@ -179,10 +179,10 @@ bool SerialInterpreter::saveFile()
         return false;
 }
 
-void SerialInterpreter::replaySerialBreak(int signo)
+void SerialInterpreter::replaySerialBreak(bool signo)
 {
     //Reset the system, reset serial communication parameter
-    if( signo == SIGINT){
+    if( signo == true){
 #ifdef USE_DEBUG
     qDebug() << "Reset the system";
 #endif
@@ -259,7 +259,6 @@ NDIErrorCode SerialInterpreter::cmdInterpreter(const QByteArray &data)
     if(colonPos > 0 && crPos > 0)
     {
         m_commad = data.left(colonPos).data();
-        qDebug() << QByteArray(m_commad);
 
         if(strcmp(m_commad, "APIREV") == 0)
         {
@@ -341,6 +340,7 @@ NDIErrorCode SerialInterpreter::cmdInterpreter(const QByteArray &data)
             else
                 return SERIALSENDERROR;
         }
+//        char *cmdphsr = "PHSR";
         if(strcmp(m_commad, "PHSR") == 0)//Port Handle Search
         {
             //PHSR:<ReplayOption><CRC16><CR>
@@ -397,6 +397,7 @@ NDIErrorCode SerialInterpreter::cmdInterpreter(const QByteArray &data)
         {
             //PINIT:<PortHandle><CRC16><CR>
             std::string ph = data.mid(6, 2).toStdString();
+            m_passiveTool = vpsToolManager::getInstance();
             if(m_passiveTool->initPortHandle(ph))
             {
                 if(replay( REPLAY_OKAY))
@@ -415,8 +416,9 @@ NDIErrorCode SerialInterpreter::cmdInterpreter(const QByteArray &data)
         {
             //PENA:<PortHandle><TrackingPriority><CRC16><CR>
             std::string port;
-            port = data.mid((5, 2)).toStdString();
+            port = data.mid(5, 2).toStdString();
             char priority = data.at(7);
+            m_passiveTool = vpsToolManager::getInstance();
             if(m_passiveTool->setTrackingPriority(port, priority))
             {
                 if(replay( REPLAY_OKAY))
@@ -486,8 +488,8 @@ NDIErrorCode SerialInterpreter::cmdInterpreter(const QByteArray &data)
             else
                 return SERIALSENDERROR;
         }
-
-        replay( ERROR_INVALID_COMMAND); //01 represent for invalid command
+        m_commad = NULL;//prevent repeate operation
+        replay( ERROR_INVALID_COMMAND);
         return NDIINVALIDCOMMAND;
     }
 }
