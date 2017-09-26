@@ -22,8 +22,9 @@ SerialWorker::SerialWorker(QObject *parent):
     connect(m_interpreter, SIGNAL(startTracking()), this, SIGNAL(startTracking()));
     connect(m_interpreter, SIGNAL(stopTracking()), this, SIGNAL(stopTracking()));
 
-    if (signal(SIGINT, m_interpreter->replaySerialBreak) == SIG_ERR)
-        qDebug() << "cant catch SIGINT";
+//    if (signal(SIGINT, &(SerialInterpreter::replaySerialBreak) == SIG_ERR))
+//        qDebug() << "cant catch SIGINT";
+//      sigaction();
 }
 
 SerialWorker::~SerialWorker()
@@ -91,11 +92,12 @@ void SerialWorker::readData()
 bool SerialWorker::setUpDefault()
 {
     m_serialPort->setPortName("ttyUSB0");
-    m_serialPort->setBaudRate(QSerialPort::Baud9600);
+    m_serialPort->setBaudRate(QSerialPort::Baud115200);
     m_serialPort->setDataBits(QSerialPort::Data8);
     m_serialPort->setParity(QSerialPort::NoParity);
     m_serialPort->setStopBits(QSerialPort::OneStop);
     m_serialPort->setFlowControl(QSerialPort::NoFlowControl);
+
 
     if(m_serialPort->open(QIODevice::ReadWrite))
     {
