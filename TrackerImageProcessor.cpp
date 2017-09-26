@@ -25,7 +25,9 @@ TrackerImageProcessor::TrackerImageProcessor()
 
 TrackerImageProcessor::~TrackerImageProcessor()
 {
-
+    if( m_Imagepool != NULL)
+        delete m_Imagepool;
+    m_Imagepool = NULL;
 }
 
 void TrackerImageProcessor::startTracking()
@@ -105,8 +107,7 @@ void getMarkerCenters2D(Image *p, MarkerCenters& centers)
 			for (int row = boundRect.y; row < boundRect.y + boundRect.height; ++row)
 			{
 				p = cvImage.ptr<uchar>(row);
-				for (int col = boundRect.x; 
-					col < boundRect.x + boundRect.width; ++col)
+				for (int col = boundRect.x; col < boundRect.x + boundRect.width; ++col)
 				{
 					if (cv::pointPolygonTest(contours.at(i), cv::Point2f(col, row), 0) >= 0)
 					{
@@ -133,8 +134,8 @@ void getMarkerCenters2DHough(Image *p, MarkerCenters& centers)
 	{
 		return ;
 	}
-	std::vector<std::vector<cv::Point> > contours;
-	cv::Mat binImage;
+
+    cv::Mat binImage;
 	cv::threshold(cvImage, binImage, IRCAM_THRES_BIN, 255, cv::THRESH_BINARY);
 	std::vector<cv::Vec3f> circles;
 	cv::HoughCircles(binImage, circles, CV_HOUGH_GRADIENT,
