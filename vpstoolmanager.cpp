@@ -23,6 +23,7 @@ void vpsToolManager::deconstructor()
     m_portPool.clear();
     if(m_Instance)
         delete m_Instance;
+    m_Instance = NULL;
 }
 
 
@@ -60,9 +61,9 @@ void vpsToolManager::setPortHandle(std::string& port)
 std::string vpsToolManager::getOccupiedPortHandle()
 {
     std::string out;
-    for(unsigned int i =0; i < m_portIndex; i++)
+    for(int i =0; i < m_portIndex; i++)
     {
-        char tmp[3];
+        char tmp[5];
         PortHandle& ph = m_portPool.at(i);
         sprintf(tmp, "%s%03d", ph.portName.c_str(), ph.statu);
         out.append(tmp);
@@ -77,9 +78,9 @@ std::string vpsToolManager::getFreePortHandle()
 {
     std::string out;
     if( !m_portPool.empty() ){
-        for(unsigned int i = m_portPool.size()-1; i >= m_portIndex; i--)
+        for(int i = m_portPool.size()-1; i >= m_portIndex; i--)
         {
-            char tmp[3];
+            char tmp[5];
             PortHandle& ph = m_portPool.at(i);
             sprintf(tmp, "%s%03d", ph.portName.c_str(), ph.statu);
             out.append(tmp);
@@ -94,7 +95,7 @@ std::string vpsToolManager::getFreePortHandle()
 
 bool vpsToolManager::initPortHandle(std::string &data)
 {
-    unsigned int i =0;
+    int i =0;
     for(; i< m_portIndex; i++)
     {
         PortHandle& ph = m_portPool.at(i);

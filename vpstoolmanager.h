@@ -47,7 +47,7 @@ private:
     vpsToolManager();
 
     std::vector<PortHandle>  m_portPool;
-    unsigned int m_portIndex;
+    int m_portIndex;
     static  vpsToolManager *m_Instance;
 };
 
