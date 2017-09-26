@@ -39,12 +39,12 @@ signals:
 public slots:
     bool setUpDefault();
     void readData();
-    void handleError(const QByteArray& error);
+    void handleCameraError(const QByteArray& error);
     bool sendPosData(const QByteArray& msg);
 
 private slots:
     void checkBusJam();
-    void handleFatalError(QSerialPort::SerialPortError error);
+    void handleSerialError(QSerialPort::SerialPortError error);
 
 private:
 

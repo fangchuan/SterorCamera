@@ -6,3 +6,6 @@
 
 2017-9-26:  command end with '\n' instead of '\r'
             call QSerialPort::realLine() in readData()
+            add ~TrackerImagePool() in TrackerImagePool.cpp
+            getMarkerCenters3D() need to be complete in TrackerImageProcessor.cpp
+            slot function handleCameraError() when TrackerImageCapture happend error

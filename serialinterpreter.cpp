@@ -260,14 +260,8 @@ NDIErrorCode SerialInterpreter::cmdInterpreter(const QByteArray &data)
     {
         m_commad = data.left(colonPos).data();
 
-        if(strcmp(m_commad, "APIREV") == 0)
-        {
-            return NDIOKAY;
-        }
-        if(strcmp(m_commad, "PHINF") == 0)
-        {
-            return NDIOKAY;
-        }
+//        if(strcmp(m_commad, "APIREV") == 0)
+//        if(strcmp(m_commad, "PHINF") == 0)
 //        if(strcmp(cmd, "PHF") == 0)//Port Handle Free
 //        if(strcmp(cmd, "PDIS") == 0)//Port disable
 //        if(strcmp(cmd, "IRATE") == 0)//Setting the illuminator rate
@@ -340,7 +334,6 @@ NDIErrorCode SerialInterpreter::cmdInterpreter(const QByteArray &data)
             else
                 return SERIALSENDERROR;
         }
-//        char *cmdphsr = "PHSR";
         if(strcmp(m_commad, "PHSR") == 0)//Port Handle Search
         {
             //PHSR:<ReplayOption><CRC16><CR>

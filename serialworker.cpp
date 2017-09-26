@@ -17,7 +17,7 @@ SerialWorker::SerialWorker(QObject *parent):
 
     connect(m_serialPort, SIGNAL(readyRead()), this, SLOT(readData()));
     connect(m_serialPort, SIGNAL(error(QSerialPort::SerialPortError)),
-            this, SLOT(handleFatalError(QSerialPort::SerialPortError)));
+            this, SLOT(handleSerialError(QSerialPort::SerialPortError)));
 
     connect(m_interpreter, SIGNAL(startTracking()), this, SIGNAL(startTracking()));
     connect(m_interpreter, SIGNAL(stopTracking()), this, SIGNAL(stopTracking()));
@@ -83,7 +83,6 @@ void SerialWorker::readData()
 //            break;
 //        }
 
-
 }
 
 //
@@ -101,29 +100,33 @@ bool SerialWorker::setUpDefault()
 
     if(m_serialPort->open(QIODevice::ReadWrite))
     {
+#ifdef USE_DEBUG
         qDebug() << "Open Serial port 0 success...";
+#endif
         return true;
     }
     else
     {
+#ifdef USE_DEBUG
         qDebug() << "open Serial port 0 failed...";
+#endif
         return false;
     }
 
 }
 
 //error message handler
-void SerialWorker::handleError(const QByteArray& error)
+void SerialWorker::handleCameraError(const QByteArray& error)
 {
     if(m_serialPort->bytesToWrite() > 1024*1024){
         emit startTimer(20);
     }
 
     if(m_serialPort->isOpen())
-        m_interpreter->replay(error.toStdString());
+        m_serialPort->write(error);
 }
 //
-void SerialWorker::handleFatalError(QSerialPort::SerialPortError error)
+void SerialWorker::handleSerialError(QSerialPort::SerialPortError error)
 {
     Q_UNUSED(error);
     if(m_serialPort->isOpen()){
