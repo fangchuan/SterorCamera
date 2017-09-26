@@ -13,7 +13,9 @@ TrackerImagepool::TrackerImagepool()
 
 TrackerImagepool::~TrackerImagepool()
 {
-
+    if( m_Instance )
+        delete m_Instance;
+    m_Instance = NULL;
 }
 
 TrackerImagepool *TrackerImagepool::getInstance()
