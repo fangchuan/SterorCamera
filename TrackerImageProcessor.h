@@ -21,6 +21,8 @@ public slots:
 	void startDiagnosing();
 	void stopDiagnosing();
 	void process();
+    void process3D();
+    void process6D();
     void busJam();
     void busIdle();
 

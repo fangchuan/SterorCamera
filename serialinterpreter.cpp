@@ -467,11 +467,15 @@ NDIErrorCode SerialInterpreter::cmdInterpreter(const QByteArray &data)
             //0008 for 3D positions of markers on tools,
             //0800 for transformations not normally reported, and
             //1000 for 3D positions of stray passive markers.
+            emit startProcess6D();
+            return NDIOKAY;
         }
         if(strcmp(m_commad, "3D") == 0)
         {
             //3D:<PortHandle><ReplayOption><CRC16><CR>
             //        2bytes      1byte: 1-4 for single marker  5 for upto 50 markers
+            emit startProcess3D();
+            return NDIOKAY;
         }
         if(strcmp(m_commad, "VSEL") == 0)//设置测量视场体积
         {

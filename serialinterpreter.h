@@ -84,6 +84,8 @@ private:
 signals:
     void startTracking();
     void stopTracking();
+    void startProcess6D();
+    void startProcess3D();
     void startDiagnosing();
     void stopDiagnosing();
 private:

@@ -3,7 +3,7 @@
 #include <BusManager.h>
 #include <Error.h>
 #include <Image.h>
-
+#include <QCoreApplication>
 #include <QDataStream>
 #include <QDir>
 #include <QDebug>
@@ -58,8 +58,10 @@ void TrackerImageCapture::startCapture()
 
 void TrackerImageCapture::capture()
 {
-	if (m_IsCapturing)
+    while (m_IsCapturing)
 	{
+        QCoreApplication::processEvents();
+
 		Image *ptr = m_Imagepool->getImagePtr();
 		m_LightsController->turnOnLeftLight();
 		m_LeftCamera->WriteRegister(0x62C, 0x80000000);//set softwaretrigger bit 0

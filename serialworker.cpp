@@ -21,6 +21,8 @@ SerialWorker::SerialWorker(QObject *parent):
 
     connect(m_interpreter, SIGNAL(startTracking()), this, SIGNAL(startTracking()));
     connect(m_interpreter, SIGNAL(stopTracking()), this, SIGNAL(stopTracking()));
+    connect(m_interpreter, SIGNAL(startProcess6D()), this, SIGNAL(startProcess6D()));
+    connect(m_interpreter, SIGNAL(startProcess3D()), this, SIGNAL(startProcess3D()));
 
 //    if (signal(SIGINT, &(SerialInterpreter::replaySerialBreak) == SIG_ERR))
 //        qDebug() << "cant catch SIGINT";

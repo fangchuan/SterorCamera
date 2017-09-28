@@ -25,6 +25,8 @@ public:
 signals:
     void startTracking();
     void stopTracking();
+    void startProcess6D();
+    void startProcess3D();
     void startManufacturing();
     void stopManufacturing();
     void startDiagnosing();

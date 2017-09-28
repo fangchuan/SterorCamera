@@ -28,8 +28,8 @@ TrackerServer::TrackerServer(QObject *parent)
     connect(imgThread, &QThread::finished,  m_Processor, &SerialWorker::deleteLater);
     connect(imgThread, &QThread::finished, imgThread, &QThread::deleteLater);
 
-    connect(m_Capture, SIGNAL(captured()), m_Processor, SLOT(process()));
-    connect(m_Processor, SIGNAL(processed()), m_Capture, SLOT(capture()));
+//    connect(m_Capture, SIGNAL(captured()), m_Processor, SLOT(process()));
+//    connect(m_Processor, SIGNAL(processed()), m_Capture, SLOT(capture()));
     connect(m_Capture, SIGNAL(errorOccured(const QByteArray&)),
             m_serial, SLOT(handleCameraError(const QByteArray&)), Qt::DirectConnection);
     connect(m_serial, SIGNAL(startTracking()), m_Capture, SLOT(startCapture()), Qt::DirectConnection);
@@ -41,6 +41,8 @@ TrackerServer::TrackerServer(QObject *parent)
 
     connect(m_serial, SIGNAL(startTracking()), m_Processor, SLOT(startTracking()), Qt::DirectConnection);
     connect(m_serial, SIGNAL(stopTracking()), m_Processor, SLOT(stopTracking()), Qt::DirectConnection);
+    connect(m_serial, SIGNAL(startProcess3D()), m_Processor, SLOT(process3D()), Qt::DirectConnection);
+    connect(m_serial, SIGNAL(startProcess6D()), m_Processor, SLOT(process6D()), Qt::DirectConnection);
     /*connect(m_serial, SIGNAL(startManufacturing()), m_Processor, SLOT(startManufacturing()));
     connect(m_serial, SIGNAL(stopManufacturing()), m_Processor, SLOT(stopManufacturing()));
     connect(m_serial, SIGNAL(startDiagnosing()), m_Processor, SLOT(startDiagnosing()));
